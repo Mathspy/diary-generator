@@ -8,4 +8,11 @@ rust-version = "1.57"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = { version = "1" }
+either = { version = "1" }
+futures-util = { version = "0.3" }
+maud = { version = "0.23" }
 notion-generator = { path = "../notion-generator" }
+serde = { version = "1", features = ["derive"] }
+time = { git = "https://github.com/Mathspy/time", branch = "fmt-write", features = ["formatting", "parsing", "macros"] }
+tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
