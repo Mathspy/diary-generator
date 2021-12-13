@@ -36,57 +36,56 @@ impl Title for Properties {
     }
 }
 
-fn get_link_map_and_lookup_tree(
+fn bisect_pages(
     pages: Vec<Page<Properties>>,
-) -> Result<(HashMap<String, String>, BTreeMap<Date, Page<Properties>>)> {
+) -> Result<(
+    HashMap<String, String>,
+    BTreeMap<Date, Page<Properties>>,
+    Vec<(String, Page<Properties>)>,
+)> {
     let length = pages.len();
 
     Ok(pages
         .into_iter()
         .map(|page| {
-            let (path, date) = page
-                .properties
-                .date
-                .date
-                .as_ref()
-                .map(|x| match x.start.parsed {
-                    Either::Left(date) => Ok(date),
-                    Either::Right(datetime) => bail!(
-                        "Diary dates must not contain time but page {} has datetime {}",
-                        page.id,
-                        datetime
-                    ),
-                })
-                .transpose()?
-                .map(|date| {
-                    Ok::<_, anyhow::Error>((
-                        date.format(format_description!("/[year]/[month]/[day]"))?,
-                        Some(date),
-                    ))
-                })
-                .transpose()?
-                .or_else(|| {
-                    page.properties
-                        .url
-                        .rich_text
-                        .get(0)
-                        .map(|rich_text| (format!("/{}", rich_text.plain_text), None))
-                })
-                .unwrap_or_else(|| (format!("/{}", page.id), None));
+            let date = page.properties.date.date.as_ref().map(|date| date.start.parsed);
 
-            Ok((page, path, date))
+            let (path, identifier) = match (date, page.properties.url.rich_text.get(0)) {
+                (Some(Either::Right(datetime)), _) => bail!(
+                    "Diary dates must not contain time but page {} has datetime {}",
+                    page.id,
+                    datetime
+                ),
+                (Some(Either::Left(date)), Some(url)) => bail!(
+                    "Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}",
+                    page.id,
+                    date,
+                    url.plain_text
+                ),
+                (None, None) => bail!("Diary pages must have either a date or a URL"),
+                (Some(Either::Left(date)), None) => (date.format(format_description!("/[year]/[month]/[day]"))?, Either::Left(date)),
+                (None, Some(url)) => (format!("/{}", url.plain_text), Either::Right(url.plain_text.clone()))
+            };
+
+            Ok((page, path, identifier))
         })
         .fold::<Result<_>, _>(
-            Ok((HashMap::with_capacity(length), BTreeMap::new())),
+            Ok((HashMap::with_capacity(length), BTreeMap::new(), Vec::new())),
             |acc, result: Result<_>| {
-                let (mut link_map, mut lookup_tree) = acc?;
-                let (page, path, date) = result?;
-                link_map.insert(page.id.clone(), path);
-                if let Some(date) = date {
-                    lookup_tree.insert(date, page);
-                }
+                let (mut link_map, mut lookup_tree, mut floating_pages) = acc?;
+                let (page, path, identifier) = result?;
 
-                Ok((link_map, lookup_tree))
+                link_map.insert(page.id.clone(), path);
+                match identifier {
+                    Either::Left(date) => {
+                        lookup_tree.insert(date, page);
+                    },
+                    Either::Right(url) => {
+                        floating_pages.push((url, page));
+                    },
+                };
+
+                Ok((link_map, lookup_tree, floating_pages))
             },
         )?)
 }
@@ -100,7 +99,7 @@ async fn main() -> Result<()> {
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
-    let (link_map, lookup_tree) = get_link_map_and_lookup_tree(pages)?;
+    let (link_map, lookup_tree, floating_pages) = bisect_pages(pages)?;
 
     let (first_date, last_date) =
         match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
