@@ -10,7 +10,7 @@ use notion_generator::{
     render::Title,
     response::{
         properties::{DateProperty, RichTextProperty, TitleProperty},
-        RichText,
+        Page, RichText,
     },
     HtmlRenderer,
 };
@@ -36,17 +36,12 @@ impl Title for Properties {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect::<Vec<String>>();
-    let auth_token = std::env::var("NOTION_TOKEN").context("Missing NOTION_TOKEN env variable")?;
-    let database_id = args.get(1).context("Missing page id as first argument")?;
-
-    let client = NotionClient::new(auth_token);
-    let pages = client.get_database_pages::<Properties>(database_id).await?;
+fn get_link_map_and_lookup_tree(
+    pages: Vec<Page<Properties>>,
+) -> Result<(HashMap<String, String>, BTreeMap<Date, Page<Properties>>)> {
     let length = pages.len();
 
-    let (link_map, lookup_tree) = pages
+    Ok(pages
         .into_iter()
         .map(|page| {
             let (path, date) = page
@@ -93,7 +88,19 @@ async fn main() -> Result<()> {
 
                 Ok((link_map, lookup_tree))
             },
-        )?;
+        )?)
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect::<Vec<String>>();
+    let auth_token = std::env::var("NOTION_TOKEN").context("Missing NOTION_TOKEN env variable")?;
+    let database_id = args.get(1).context("Missing page id as first argument")?;
+
+    let client = NotionClient::new(auth_token);
+    let pages = client.get_database_pages::<Properties>(database_id).await?;
+
+    let (link_map, lookup_tree) = get_link_map_and_lookup_tree(pages)?;
 
     let (first_date, last_date) =
         match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
