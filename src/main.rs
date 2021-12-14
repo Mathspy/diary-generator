@@ -96,7 +96,7 @@ fn generate_years(
     link_map: &HashMap<String, String>,
     first_date: &Date,
     last_date: &Date,
-) -> Result<JoinHandle<std::io::Result<()>>> {
+) -> Result<JoinHandle<Result<()>>> {
     let years = (first_date.year()..=last_date.year())
         .map(|year| {
             let first_day = Date::from_calendar_date(year, Month::January, 1).unwrap();
@@ -140,7 +140,16 @@ fn generate_years(
 
             let mut path = Path::new("public").join(format!("{:0>4}", year));
             path.set_extension("html");
-            Ok(tokio::fs::write(path, markup.into_string()))
+            Ok((path, markup))
+        })
+        .map(|result| {
+            result.map(|(path, markup)| async move {
+                tokio::fs::write(&path, markup.into_string())
+                    .await
+                    .with_context(|| format!("Failed to write {} file", path.display()))?;
+
+                Ok(())
+            })
         })
         .collect::<Result<FuturesUnordered<_>>>()?;
 
