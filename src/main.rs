@@ -20,6 +20,7 @@ use std::{
     path::Path,
 };
 use time::{macros::format_description, Date, Month};
+use tokio::task::JoinHandle;
 
 #[derive(Deserialize)]
 struct Properties {
@@ -90,25 +91,12 @@ fn bisect_pages(
         )?)
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect::<Vec<String>>();
-    let auth_token = std::env::var("NOTION_TOKEN").context("Missing NOTION_TOKEN env variable")?;
-    let database_id = args.get(1).context("Missing page id as first argument")?;
-
-    let client = NotionClient::new(auth_token);
-    let pages = client.get_database_pages::<Properties>(database_id).await?;
-
-    let (link_map, lookup_tree, floating_pages) = bisect_pages(pages)?;
-
-    let (first_date, last_date) =
-        match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
-            (Some((first_date, _)), Some((last_date, _))) => (first_date, last_date),
-            (Some((first_date, _)), None) => (first_date, first_date),
-            (None, Some((last_date, _))) => (last_date, last_date),
-            (None, None) => return Ok(()),
-        };
-
+fn generate_years(
+    lookup_tree: &BTreeMap<Date, Page<Properties>>,
+    link_map: &HashMap<String, String>,
+    first_date: &Date,
+    last_date: &Date,
+) -> Result<JoinHandle<std::io::Result<()>>> {
     let years = (first_date.year()..=last_date.year())
         .map(|year| {
             let first_day = Date::from_calendar_date(year, Month::January, 1).unwrap();
@@ -156,7 +144,29 @@ async fn main() -> Result<()> {
         })
         .collect::<Result<FuturesUnordered<_>>>()?;
 
-    years.try_collect::<()>().await?;
+    Ok(tokio::spawn(years.try_collect::<()>()))
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect::<Vec<String>>();
+    let auth_token = std::env::var("NOTION_TOKEN").context("Missing NOTION_TOKEN env variable")?;
+    let database_id = args.get(1).context("Missing page id as first argument")?;
+
+    let client = NotionClient::new(auth_token);
+    let pages = client.get_database_pages::<Properties>(database_id).await?;
+
+    let (link_map, lookup_tree, floating_pages) = bisect_pages(pages)?;
+
+    let (first_date, last_date) =
+        match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
+            (Some((first_date, _)), Some((last_date, _))) => (first_date, last_date),
+            (Some((first_date, _)), None) => (first_date, first_date),
+            (None, Some((last_date, _))) => (last_date, last_date),
+            (None, None) => return Ok(()),
+        };
+
+    generate_years(&lookup_tree, &link_map, first_date, last_date)?.await??;
 
     Ok(())
 }
