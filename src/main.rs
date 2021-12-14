@@ -93,6 +93,19 @@ fn bisect_pages(
         )?)
 }
 
+async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
+    let path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .with_context(|| format!("Failed to create parent directory {}", path.display()))?;
+    }
+    tokio::fs::write(path, contents.as_ref())
+        .await
+        .with_context(|| format!("Failed to write {} file", path.display()))?;
+    Ok(())
+}
+
 fn generate_years(
     lookup_tree: &BTreeMap<Date, Page<Properties>>,
     link_map: &HashMap<String, String>,
@@ -144,15 +157,7 @@ fn generate_years(
             path.set_extension("html");
             Ok((path, markup))
         })
-        .map(|result| {
-            result.map(|(path, markup)| async move {
-                tokio::fs::write(&path, markup.into_string())
-                    .await
-                    .with_context(|| format!("Failed to write {} file", path.display()))?;
-
-                Ok(())
-            })
-        })
+        .map(|result| result.map(|(path, markup)| write(path, markup.into_string())))
         .collect::<Result<FuturesUnordered<_>>>()?;
 
     Ok(tokio::spawn(years.try_collect::<()>()))
