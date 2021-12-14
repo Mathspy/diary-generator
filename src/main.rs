@@ -22,6 +22,8 @@ use std::{
 use time::{macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
 
+const EXPORT_DIR: &str = "public";
+
 #[derive(Deserialize)]
 struct Properties {
     name: TitleProperty,
@@ -138,7 +140,7 @@ fn generate_years(
                 }
             };
 
-            let mut path = Path::new("public").join(format!("{:0>4}", year));
+            let mut path = Path::new(EXPORT_DIR).join(format!("{:0>4}", year));
             path.set_extension("html");
             Ok((path, markup))
         })
