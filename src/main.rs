@@ -124,6 +124,10 @@ fn generate_years(
                 .map(|(_, page)| (page.id.clone(), page))
                 .unzip::<_, _, HashSet<_>, Vec<_>>();
 
+            if pages.is_empty() {
+                return Ok(None);
+            }
+
             let renderer = HtmlRenderer {
                 heading_anchors: HeadingAnchors::Icon,
                 current_pages,
@@ -156,9 +160,16 @@ fn generate_years(
 
             let mut path = Path::new(EXPORT_DIR).join(format!("{:0>4}", year));
             path.set_extension("html");
-            Ok((path, markup))
+            Ok(Some((path, markup)))
         })
-        .map(|result| result.map(|(path, markup)| write(path, markup.into_string())))
+        .map(|result| {
+            result.map(|option| async move {
+                match option {
+                    Some((path, markup)) => write(path, markup.into_string()).await,
+                    None => Ok(()),
+                }
+            })
+        })
         .collect::<Result<FuturesUnordered<_>>>()?;
 
     Ok(tokio::spawn(years.try_collect::<()>()))
