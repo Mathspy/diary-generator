@@ -4,7 +4,7 @@ use anyhow::{bail, Context, Result};
 use either::Either;
 use futures_util::stream::{FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
-use maud::{html, DOCTYPE};
+use maud::{html, Markup, DOCTYPE};
 use notion_generator::{
     client::NotionClient,
     options::HeadingAnchors,
@@ -20,7 +20,7 @@ use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     ops::Not,
-    path::Path,
+    path::{Path, PathBuf},
 };
 use time::{macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
@@ -120,6 +120,13 @@ impl Generator {
         }
     }
 
+    async fn write_if_not_empty(option: Option<(PathBuf, Markup)>) -> Result<()> {
+        match option {
+            Some((path, markup)) => write(path, markup.into_string()).await,
+            None => Ok(()),
+        }
+    }
+
     fn generate_years(&self, first_date: Date, last_date: Date) -> Result<JoinHandle<Result<()>>> {
         let years = (first_date.year()..=last_date.year())
             .map(|year| {
@@ -170,14 +177,7 @@ impl Generator {
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
-            .map(|result| {
-                result.map(|option| async move {
-                    match option {
-                        Some((path, markup)) => write(path, markup.into_string()).await,
-                        None => Ok(()),
-                    }
-                })
-            })
+            .map_ok(Self::write_if_not_empty)
             .collect::<Result<FuturesUnordered<_>>>()?;
 
         Ok(tokio::spawn(years.try_collect::<()>()))
@@ -242,14 +242,7 @@ impl Generator {
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
-            .map(|result| {
-                result.map(|option| async move {
-                    match option {
-                        Some((path, markup)) => write(path, markup.into_string()).await,
-                        None => Ok(()),
-                    }
-                })
-            })
+            .map_ok(Self::write_if_not_empty)
             .collect::<Result<FuturesUnordered<_>>>()?;
 
         Ok(tokio::spawn(months.try_collect::<()>()))
@@ -307,14 +300,7 @@ impl Generator {
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
-            .map(|result| {
-                result.map(|option| async move {
-                    match option {
-                        Some((path, markup)) => write(path, markup.into_string()).await,
-                        None => Ok(()),
-                    }
-                })
-            })
+            .map_ok(Self::write_if_not_empty)
             .collect::<Result<FuturesUnordered<_>>>()?;
 
         Ok(tokio::spawn(days.try_collect::<()>()))
@@ -369,14 +355,7 @@ impl Generator {
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
-            .map(|result| {
-                result.map(|option| async move {
-                    match option {
-                        Some((path, markup)) => write(path, markup.into_string()).await,
-                        None => Ok(()),
-                    }
-                })
-            })
+            .map_ok(Self::write_if_not_empty)
             .collect::<Result<FuturesUnordered<_>>>()?;
 
         Ok(tokio::spawn(independents.try_collect::<()>()))
