@@ -11,7 +11,7 @@ use notion_generator::{
     render::Title,
     response::{
         properties::{DateProperty, RichTextProperty, TitleProperty},
-        Page, RichText,
+        Page, PlainText, RichText,
     },
     HtmlRenderer,
 };
@@ -276,6 +276,73 @@ fn generate_months(
     Ok(tokio::spawn(months.try_collect::<()>()))
 }
 
+fn generate_days(
+    lookup_tree: &BTreeMap<Date, Page<Properties>>,
+    link_map: &HashMap<String, String>,
+) -> Result<JoinHandle<Result<()>>> {
+    let days = lookup_tree
+        .iter()
+        .map(|(date, page)| {
+            let renderer = HtmlRenderer {
+                heading_anchors: HeadingAnchors::Icon,
+                current_pages: HashSet::from([page.id.clone()]),
+                link_map: link_map.clone(),
+            };
+
+            let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
+
+            let title = page.properties.title().plain_text();
+            let description = page
+                .properties
+                .description
+                .rich_text
+                .as_slice()
+                .plain_text();
+
+            let markup = html! {
+                (DOCTYPE)
+                html lang="en" {
+                    head {
+                        meta charset="utf-8";
+                        meta name="viewport" content="width=device-width, initial-scale=1";
+                        @if !description.is_empty() {
+                            meta name="description" content=(description);
+                        }
+                        link rel="stylesheet" href="/katex/katex.min.css";
+                        // TODO: Add `- Game Dev Diary` after each title
+                        title { (title) }
+
+                        meta property="og:title" content=(title);
+                        // TODO: Rest of OG meta properties
+                    }
+                    body {
+                        main {
+                            (rendered_page)
+                        }
+                    }
+                }
+            };
+
+            let mut path = Path::new(EXPORT_DIR)
+                .join(format!("{:0>4}", date.year()))
+                .join(format!("{:0>2}", u8::from(date.month())))
+                .join(format!("{:0>2}", date.day()));
+            path.set_extension("html");
+            Ok(Some((path, markup)))
+        })
+        .map(|result| {
+            result.map(|option| async move {
+                match option {
+                    Some((path, markup)) => write(path, markup.into_string()).await,
+                    None => Ok(()),
+                }
+            })
+        })
+        .collect::<Result<FuturesUnordered<_>>>()?;
+
+    Ok(tokio::spawn(days.try_collect::<()>()))
+}
+
 fn katex_download(client: Client) -> JoinHandle<Result<()>> {
     const CDN_URL: &str = "https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/";
     const KATEX_DIR: &str = "katex";
@@ -354,13 +421,15 @@ async fn main() -> Result<()> {
         katex_download(client.client().clone()),
         generate_years(&lookup_tree, &link_map, first_date, last_date)?,
         generate_months(&lookup_tree, &link_map, first_date, last_date)?,
+        generate_days(&lookup_tree, &link_map)?,
     )?;
 
     match results {
-        (Err(error), _, _) => return Err(error),
-        (_, Err(error), _) => return Err(error),
-        (_, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _) => return Err(error),
+        (_, Err(error), _, _) => return Err(error),
+        (_, _, Err(error), _) => return Err(error),
+        (_, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     Ok(())
