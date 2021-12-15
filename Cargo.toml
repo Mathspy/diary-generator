@@ -9,6 +9,7 @@ rust-version = "1.57"
 
 [dependencies]
 anyhow = { version = "1" }
+async-recursion = { version = "0.3" }
 either = { version = "1" }
 futures-util = { version = "0.3" }
 itertools = { version = "0.10" }
@@ -18,3 +19,4 @@ reqwest = { version = "0.11", default-features = false, features = ["json", "rus
 serde = { version = "1", features = ["derive"] }
 time = { git = "https://github.com/Mathspy/time", branch = "fmt-write", features = ["formatting", "parsing", "macros"] }
 tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
+tokio-stream = { version = "0.1", features = ["fs"] }

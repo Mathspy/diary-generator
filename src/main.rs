@@ -1,5 +1,7 @@
 #![feature(map_first_last)]
 
+mod utils;
+
 use anyhow::{bail, Context, Result};
 use either::Either;
 use futures_util::stream::{FuturesUnordered, TryStreamExt};
@@ -25,6 +27,7 @@ use std::{
 };
 use time::{macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
+use utils::spawn_copy_all;
 
 const EXPORT_DIR: &str = "output";
 
@@ -517,15 +520,17 @@ async fn main() -> Result<()> {
         generator.generate_months(first_date, last_date)?,
         generator.generate_days()?,
         generator.generate_independents()?,
+        spawn_copy_all(Path::new("public"), Path::new(EXPORT_DIR))
     )?;
 
     match results {
-        (Err(error), _, _, _, _) => return Err(error),
-        (_, Err(error), _, _, _) => return Err(error),
-        (_, _, Err(error), _, _) => return Err(error),
-        (_, _, _, Err(error), _) => return Err(error),
-        (_, _, _, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _, _, _) => return Err(error),
+        (_, Err(error), _, _, _, _) => return Err(error),
+        (_, _, Err(error), _, _, _) => return Err(error),
+        (_, _, _, Err(error), _, _) => return Err(error),
+        (_, _, _, _, Err(error), _) => return Err(error),
+        (_, _, _, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     Ok(())
