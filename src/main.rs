@@ -46,6 +46,7 @@ struct Generator {
     link_map: HashMap<String, String>,
     lookup_tree: BTreeMap<Date, Page<Properties>>,
     independent_pages: Vec<(String, Page<Properties>)>,
+    today: Date,
 }
 
 impl Generator {
@@ -101,10 +102,13 @@ impl Generator {
                 },
             )?;
 
+        let today = time::OffsetDateTime::now_utc().date();
+
         Ok(Generator {
             link_map,
             lookup_tree,
             independent_pages,
+            today,
         })
     }
 
@@ -127,6 +131,15 @@ impl Generator {
         }
     }
 
+    fn filter_unpublished(&self, page: &Page<Properties>) -> bool {
+        page.properties
+            .published
+            .date
+            .as_ref()
+            .map(|date| date.start <= self.today)
+            .unwrap_or(false)
+    }
+
     fn generate_years(&self, first_date: Date, last_date: Date) -> Result<JoinHandle<Result<()>>> {
         let years = (first_date.year()..=last_date.year())
             .map(|year| {
@@ -136,7 +149,9 @@ impl Generator {
                 let range = self.lookup_tree.range(first_day..next_year);
 
                 let (current_pages, pages) = range
-                    .map(|(_, page)| (page.id.clone(), page))
+                    .map(|(_, page)| page)
+                    .filter(|page| self.filter_unpublished(page))
+                    .map(|page| (page.id.clone(), page))
                     .unzip::<_, _, HashSet<_>, Vec<_>>();
 
                 if pages.is_empty() {
@@ -199,7 +214,9 @@ impl Generator {
                 let range = self.lookup_tree.range(first_day..next_month);
 
                 let (current_pages, pages) = range
-                    .map(|(_, page)| (page.id.clone(), page))
+                    .map(|(_, page)| page)
+                    .filter(|page| self.filter_unpublished(page))
+                    .map(|page| (page.id.clone(), page))
                     .unzip::<_, _, HashSet<_>, Vec<_>>();
 
                 if pages.is_empty() {
@@ -252,6 +269,7 @@ impl Generator {
         let days = self
             .lookup_tree
             .iter()
+            .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(date, page)| {
                 let renderer = HtmlRenderer {
                     heading_anchors: HeadingAnchors::Icon,
@@ -310,6 +328,7 @@ impl Generator {
         let independents = self
             .independent_pages
             .iter()
+            .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(url, page)| {
                 let renderer = HtmlRenderer {
                     heading_anchors: HeadingAnchors::Icon,
