@@ -19,6 +19,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
+    ops::Not,
     path::Path,
 };
 use time::{macros::format_description, Date, Month};
@@ -54,8 +55,10 @@ fn bisect_pages(
         .into_iter()
         .map(|page| {
             let date = page.properties.date.date.as_ref().map(|date| date.start.parsed);
+            let url = page.properties.url.rich_text.plain_text();
+            let url = Some(url).filter(|url| url.is_empty().not());
 
-            let (path, identifier) = match (date, page.properties.url.rich_text.get(0)) {
+            let (path, identifier) = match (date, url) {
                 (Some(Either::Right(datetime)), _) => bail!(
                     "Diary dates must not contain time but page {} has datetime {}",
                     page.id,
@@ -65,11 +68,11 @@ fn bisect_pages(
                     "Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}",
                     page.id,
                     date,
-                    url.plain_text
+                    url
                 ),
                 (None, None) => bail!("Diary pages must have either a date or a URL"),
                 (Some(Either::Left(date)), None) => (date.format(format_description!("/[year]/[month]/[day]"))?, Either::Left(date)),
-                (None, Some(url)) => (format!("/{}", url.plain_text), Either::Right(url.plain_text.clone()))
+                (None, Some(url)) => (format!("/{}", url), Either::Right(url))
             };
 
             Ok((page, path, identifier))
