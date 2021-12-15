@@ -319,6 +319,68 @@ impl Generator {
 
         Ok(tokio::spawn(days.try_collect::<()>()))
     }
+
+    fn generate_independents(&self) -> Result<JoinHandle<Result<()>>> {
+        let independents = self
+            .independent_pages
+            .iter()
+            .map(|(url, page)| {
+                let renderer = HtmlRenderer {
+                    heading_anchors: HeadingAnchors::Icon,
+                    current_pages: HashSet::from([page.id.clone()]),
+                    link_map: &self.link_map,
+                };
+
+                let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
+
+                let title = page.properties.title().plain_text();
+                let description = page
+                    .properties
+                    .description
+                    .rich_text
+                    .as_slice()
+                    .plain_text();
+
+                let markup = html! {
+                    (DOCTYPE)
+                    html lang="en" {
+                        head {
+                            meta charset="utf-8";
+                            meta name="viewport" content="width=device-width, initial-scale=1";
+                            @if !description.is_empty() {
+                                meta name="description" content=(description);
+                            }
+                            link rel="stylesheet" href="/katex/katex.min.css";
+                            // TODO: Add `- Game Dev Diary` after each title
+                            title { (title) }
+
+                            meta property="og:title" content=(title);
+                            // TODO: Rest of OG meta properties
+                        }
+                        body {
+                            main {
+                                (rendered_page)
+                            }
+                        }
+                    }
+                };
+
+                let mut path = Path::new(EXPORT_DIR).join(url);
+                path.set_extension("html");
+                Ok(Some((path, markup)))
+            })
+            .map(|result| {
+                result.map(|option| async move {
+                    match option {
+                        Some((path, markup)) => write(path, markup.into_string()).await,
+                        None => Ok(()),
+                    }
+                })
+            })
+            .collect::<Result<FuturesUnordered<_>>>()?;
+
+        Ok(tokio::spawn(independents.try_collect::<()>()))
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
@@ -355,70 +417,6 @@ mod months {
     pub fn all() -> std::slice::Iter<'static, Month> {
         MONTHS.iter()
     }
-}
-
-fn generate_independents(
-    floating_pages: Vec<(String, Page<Properties>)>,
-    link_map: &HashMap<String, String>,
-) -> Result<JoinHandle<Result<()>>> {
-    let independents = floating_pages
-        .iter()
-        .map(|(url, page)| {
-            let renderer = HtmlRenderer {
-                heading_anchors: HeadingAnchors::Icon,
-                current_pages: HashSet::from([page.id.clone()]),
-                link_map,
-            };
-
-            let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
-
-            let title = page.properties.title().plain_text();
-            let description = page
-                .properties
-                .description
-                .rich_text
-                .as_slice()
-                .plain_text();
-
-            let markup = html! {
-                (DOCTYPE)
-                html lang="en" {
-                    head {
-                        meta charset="utf-8";
-                        meta name="viewport" content="width=device-width, initial-scale=1";
-                        @if !description.is_empty() {
-                            meta name="description" content=(description);
-                        }
-                        link rel="stylesheet" href="/katex/katex.min.css";
-                        // TODO: Add `- Game Dev Diary` after each title
-                        title { (title) }
-
-                        meta property="og:title" content=(title);
-                        // TODO: Rest of OG meta properties
-                    }
-                    body {
-                        main {
-                            (rendered_page)
-                        }
-                    }
-                }
-            };
-
-            let mut path = Path::new(EXPORT_DIR).join(url);
-            path.set_extension("html");
-            Ok(Some((path, markup)))
-        })
-        .map(|result| {
-            result.map(|option| async move {
-                match option {
-                    Some((path, markup)) => write(path, markup.into_string()).await,
-                    None => Ok(()),
-                }
-            })
-        })
-        .collect::<Result<FuturesUnordered<_>>>()?;
-
-    Ok(tokio::spawn(independents.try_collect::<()>()))
 }
 
 fn katex_download(client: Client) -> JoinHandle<Result<()>> {
@@ -497,7 +495,7 @@ async fn main() -> Result<()> {
         generator.generate_years(first_date, last_date)?,
         generator.generate_months(first_date, last_date)?,
         generator.generate_days()?,
-        generate_independents(generator.independent_pages, &generator.link_map)?,
+        generator.generate_independents()?,
     )?;
 
     match results {
