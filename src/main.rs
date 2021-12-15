@@ -4,7 +4,7 @@ use anyhow::{bail, Context, Result};
 use either::Either;
 use futures_util::stream::{FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
-use maud::{html, Markup, DOCTYPE};
+use maud::{html, Markup, PreEscaped, DOCTYPE};
 use notion_generator::{
     client::NotionClient,
     options::HeadingAnchors,
@@ -19,6 +19,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
+    io,
     ops::Not,
     path::{Path, PathBuf},
 };
@@ -47,10 +48,11 @@ struct Generator {
     lookup_tree: BTreeMap<Date, Page<Properties>>,
     independent_pages: Vec<(String, Page<Properties>)>,
     today: Date,
+    head: Markup,
 }
 
 impl Generator {
-    fn new(pages: Vec<Page<Properties>>) -> Result<Generator> {
+    async fn new(pages: Vec<Page<Properties>>) -> Result<Generator> {
         let length = pages.len();
 
         let (link_map, lookup_tree, independent_pages) = pages
@@ -104,11 +106,14 @@ impl Generator {
 
         let today = time::OffsetDateTime::now_utc().date();
 
+        let head = PreEscaped(read_partial_file("head.html").await?);
+
         Ok(Generator {
             link_map,
             lookup_tree,
             independent_pages,
             today,
+            head,
         })
     }
 
@@ -177,6 +182,8 @@ impl Generator {
                             link rel="stylesheet" href="/katex/katex.min.css";
 
                             title { (year) }
+
+                            (self.head)
                         }
                         body {
                             main {
@@ -242,6 +249,8 @@ impl Generator {
                             link rel="stylesheet" href="/katex/katex.min.css";
 
                             title { (format!("{} {}", month, year)) }
+
+                            (self.head)
                         }
                         body {
                             main {
@@ -302,6 +311,8 @@ impl Generator {
 
                             meta property="og:title" content=(title);
                             // TODO: Rest of OG meta properties
+
+                            (self.head)
                         }
                         body {
                             main {
@@ -361,6 +372,8 @@ impl Generator {
 
                             meta property="og:title" content=(title);
                             // TODO: Rest of OG meta properties
+
+                            (self.head)
                         }
                         body {
                             main {
@@ -392,6 +405,16 @@ async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(
         .await
         .with_context(|| format!("Failed to write {} file", path.display()))?;
     Ok(())
+}
+
+async fn read_partial_file(file: &str) -> Result<String> {
+    tokio::fs::read_to_string(Path::new("partials").join(file))
+        .await
+        .or_else(|error| match error.kind() {
+            io::ErrorKind::NotFound => Ok(String::new()),
+            _ => Err(error),
+        })
+        .with_context(|| format!("Failed to read partial file {}", file))
 }
 
 mod months {
@@ -481,7 +504,7 @@ async fn main() -> Result<()> {
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
-    let generator = Generator::new(pages)?;
+    let generator = Generator::new(pages).await?;
 
     let (first_date, last_date) = match generator.get_first_and_last_dates() {
         Some(dates) => dates,
