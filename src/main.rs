@@ -107,6 +107,18 @@ impl Generator {
             independent_pages,
         })
     }
+
+    fn get_first_and_last_dates(&self) -> Option<(Date, Date)> {
+        match (
+            self.lookup_tree.first_key_value(),
+            self.lookup_tree.last_key_value(),
+        ) {
+            (Some((&first_date, _)), Some((&last_date, _))) => Some((first_date, last_date)),
+            (Some((&first_date, _)), None) => Some((first_date, first_date)),
+            (None, Some((&last_date, _))) => Some((last_date, last_date)),
+            (None, None) => None,
+        }
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
@@ -125,8 +137,8 @@ async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(
 fn generate_years(
     lookup_tree: &BTreeMap<Date, Page<Properties>>,
     link_map: &HashMap<String, String>,
-    first_date: &Date,
-    last_date: &Date,
+    first_date: Date,
+    last_date: Date,
 ) -> Result<JoinHandle<Result<()>>> {
     let years = (first_date.year()..=last_date.year())
         .map(|year| {
@@ -216,8 +228,8 @@ mod months {
 fn generate_months(
     lookup_tree: &BTreeMap<Date, Page<Properties>>,
     link_map: &HashMap<String, String>,
-    first_date: &Date,
-    last_date: &Date,
+    first_date: Date,
+    last_date: Date,
 ) -> Result<JoinHandle<Result<()>>> {
     let months = (first_date.year()..=last_date.year())
         .cartesian_product(months::all())
@@ -485,26 +497,29 @@ async fn main() -> Result<()> {
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
-    let Generator {
-        link_map,
-        lookup_tree,
-        independent_pages,
-    } = Generator::new(pages)?;
+    let generator = Generator::new(pages)?;
 
-    let (first_date, last_date) =
-        match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
-            (Some((first_date, _)), Some((last_date, _))) => (first_date, last_date),
-            (Some((first_date, _)), None) => (first_date, first_date),
-            (None, Some((last_date, _))) => (last_date, last_date),
-            (None, None) => return Ok(()),
-        };
+    let (first_date, last_date) = match generator.get_first_and_last_dates() {
+        Some(dates) => dates,
+        None => return Ok(()),
+    };
 
     let results = tokio::try_join!(
         katex_download(client.client().clone()),
-        generate_years(&lookup_tree, &link_map, first_date, last_date)?,
-        generate_months(&lookup_tree, &link_map, first_date, last_date)?,
-        generate_days(&lookup_tree, &link_map)?,
-        generate_independents(independent_pages, &link_map)?,
+        generate_years(
+            &generator.lookup_tree,
+            &generator.link_map,
+            first_date,
+            last_date
+        )?,
+        generate_months(
+            &generator.lookup_tree,
+            &generator.link_map,
+            first_date,
+            last_date
+        )?,
+        generate_days(&generator.lookup_tree, &generator.link_map)?,
+        generate_independents(generator.independent_pages, &generator.link_map)?,
     )?;
 
     match results {
