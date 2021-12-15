@@ -26,7 +26,7 @@ use std::{
 use time::{macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
 
-const EXPORT_DIR: &str = "public";
+const EXPORT_DIR: &str = "output";
 
 #[derive(Deserialize)]
 struct Properties {
