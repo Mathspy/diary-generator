@@ -175,6 +175,29 @@ fn generate_years(
     Ok(tokio::spawn(years.try_collect::<()>()))
 }
 
+mod months {
+    use time::Month;
+
+    const MONTHS: &[Month] = &[
+        Month::January,
+        Month::February,
+        Month::March,
+        Month::April,
+        Month::May,
+        Month::June,
+        Month::July,
+        Month::August,
+        Month::September,
+        Month::October,
+        Month::November,
+        Month::December,
+    ];
+
+    pub fn all() -> std::slice::Iter<'static, Month> {
+        MONTHS.iter()
+    }
+}
+
 fn katex_download(client: Client) -> JoinHandle<Result<()>> {
     const CDN_URL: &str = "https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/";
     const KATEX_DIR: &str = "katex";
