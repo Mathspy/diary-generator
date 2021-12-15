@@ -132,7 +132,7 @@ fn generate_years(
             let renderer = HtmlRenderer {
                 heading_anchors: HeadingAnchors::Icon,
                 current_pages,
-                link_map: link_map.clone(),
+                link_map,
             };
 
             let rendered_pages = pages
@@ -230,7 +230,7 @@ fn generate_months(
             let renderer = HtmlRenderer {
                 heading_anchors: HeadingAnchors::Icon,
                 current_pages,
-                link_map: link_map.clone(),
+                link_map,
             };
 
             let rendered_pages = pages
@@ -286,7 +286,7 @@ fn generate_days(
             let renderer = HtmlRenderer {
                 heading_anchors: HeadingAnchors::Icon,
                 current_pages: HashSet::from([page.id.clone()]),
-                link_map: link_map.clone(),
+                link_map,
             };
 
             let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
