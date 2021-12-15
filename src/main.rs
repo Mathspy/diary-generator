@@ -119,6 +119,69 @@ impl Generator {
             (None, None) => None,
         }
     }
+
+    fn generate_years(&self, first_date: Date, last_date: Date) -> Result<JoinHandle<Result<()>>> {
+        let years = (first_date.year()..=last_date.year())
+            .map(|year| {
+                let first_day = Date::from_calendar_date(year, Month::January, 1).unwrap();
+                let next_year = Date::from_calendar_date(year + 1, Month::January, 1).unwrap();
+
+                let range = self.lookup_tree.range(first_day..next_year);
+
+                let (current_pages, pages) = range
+                    .map(|(_, page)| (page.id.clone(), page))
+                    .unzip::<_, _, HashSet<_>, Vec<_>>();
+
+                if pages.is_empty() {
+                    return Ok(None);
+                }
+
+                let renderer = HtmlRenderer {
+                    heading_anchors: HeadingAnchors::Icon,
+                    current_pages,
+                    link_map: &self.link_map,
+                };
+
+                let rendered_pages = pages
+                    .into_iter()
+                    .map(|page| renderer.render_page(page).map(|(markup, _)| markup));
+
+                let markup = html! {
+                    (DOCTYPE)
+                    html lang="en" {
+                        head {
+                            meta charset="utf-8";
+                            meta name="viewport" content="width=device-width, initial-scale=1";
+                            link rel="stylesheet" href="/katex/katex.min.css";
+
+                            title { (year) }
+                        }
+                        body {
+                            main {
+                                @for block in rendered_pages {
+                                    (block?)
+                                }
+                            }
+                        }
+                    }
+                };
+
+                let mut path = Path::new(EXPORT_DIR).join(format!("{:0>4}", year));
+                path.set_extension("html");
+                Ok(Some((path, markup)))
+            })
+            .map(|result| {
+                result.map(|option| async move {
+                    match option {
+                        Some((path, markup)) => write(path, markup.into_string()).await,
+                        None => Ok(()),
+                    }
+                })
+            })
+            .collect::<Result<FuturesUnordered<_>>>()?;
+
+        Ok(tokio::spawn(years.try_collect::<()>()))
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
@@ -132,74 +195,6 @@ async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(
         .await
         .with_context(|| format!("Failed to write {} file", path.display()))?;
     Ok(())
-}
-
-fn generate_years(
-    lookup_tree: &BTreeMap<Date, Page<Properties>>,
-    link_map: &HashMap<String, String>,
-    first_date: Date,
-    last_date: Date,
-) -> Result<JoinHandle<Result<()>>> {
-    let years = (first_date.year()..=last_date.year())
-        .map(|year| {
-            let first_day = Date::from_calendar_date(year, Month::January, 1).unwrap();
-            let next_year = Date::from_calendar_date(year + 1, Month::January, 1).unwrap();
-
-            let range = lookup_tree.range(first_day..next_year);
-
-            let (current_pages, pages) = range
-                .map(|(_, page)| (page.id.clone(), page))
-                .unzip::<_, _, HashSet<_>, Vec<_>>();
-
-            if pages.is_empty() {
-                return Ok(None);
-            }
-
-            let renderer = HtmlRenderer {
-                heading_anchors: HeadingAnchors::Icon,
-                current_pages,
-                link_map,
-            };
-
-            let rendered_pages = pages
-                .into_iter()
-                .map(|page| renderer.render_page(page).map(|(markup, _)| markup));
-
-            let markup = html! {
-                (DOCTYPE)
-                html lang="en" {
-                    head {
-                        meta charset="utf-8";
-                        meta name="viewport" content="width=device-width, initial-scale=1";
-                        link rel="stylesheet" href="/katex/katex.min.css";
-
-                        title { (year) }
-                    }
-                    body {
-                        main {
-                            @for block in rendered_pages {
-                                (block?)
-                            }
-                        }
-                    }
-                }
-            };
-
-            let mut path = Path::new(EXPORT_DIR).join(format!("{:0>4}", year));
-            path.set_extension("html");
-            Ok(Some((path, markup)))
-        })
-        .map(|result| {
-            result.map(|option| async move {
-                match option {
-                    Some((path, markup)) => write(path, markup.into_string()).await,
-                    None => Ok(()),
-                }
-            })
-        })
-        .collect::<Result<FuturesUnordered<_>>>()?;
-
-    Ok(tokio::spawn(years.try_collect::<()>()))
 }
 
 mod months {
@@ -506,12 +501,7 @@ async fn main() -> Result<()> {
 
     let results = tokio::try_join!(
         katex_download(client.client().clone()),
-        generate_years(
-            &generator.lookup_tree,
-            &generator.link_map,
-            first_date,
-            last_date
-        )?,
+        generator.generate_years(first_date, last_date)?,
         generate_months(
             &generator.lookup_tree,
             &generator.link_map,
