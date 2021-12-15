@@ -346,6 +346,70 @@ fn generate_days(
     Ok(tokio::spawn(days.try_collect::<()>()))
 }
 
+fn generate_independents(
+    floating_pages: Vec<(String, Page<Properties>)>,
+    link_map: &HashMap<String, String>,
+) -> Result<JoinHandle<Result<()>>> {
+    let independents = floating_pages
+        .iter()
+        .map(|(url, page)| {
+            let renderer = HtmlRenderer {
+                heading_anchors: HeadingAnchors::Icon,
+                current_pages: HashSet::from([page.id.clone()]),
+                link_map,
+            };
+
+            let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
+
+            let title = page.properties.title().plain_text();
+            let description = page
+                .properties
+                .description
+                .rich_text
+                .as_slice()
+                .plain_text();
+
+            let markup = html! {
+                (DOCTYPE)
+                html lang="en" {
+                    head {
+                        meta charset="utf-8";
+                        meta name="viewport" content="width=device-width, initial-scale=1";
+                        @if !description.is_empty() {
+                            meta name="description" content=(description);
+                        }
+                        link rel="stylesheet" href="/katex/katex.min.css";
+                        // TODO: Add `- Game Dev Diary` after each title
+                        title { (title) }
+
+                        meta property="og:title" content=(title);
+                        // TODO: Rest of OG meta properties
+                    }
+                    body {
+                        main {
+                            (rendered_page)
+                        }
+                    }
+                }
+            };
+
+            let mut path = Path::new(EXPORT_DIR).join(url);
+            path.set_extension("html");
+            Ok(Some((path, markup)))
+        })
+        .map(|result| {
+            result.map(|option| async move {
+                match option {
+                    Some((path, markup)) => write(path, markup.into_string()).await,
+                    None => Ok(()),
+                }
+            })
+        })
+        .collect::<Result<FuturesUnordered<_>>>()?;
+
+    Ok(tokio::spawn(independents.try_collect::<()>()))
+}
+
 fn katex_download(client: Client) -> JoinHandle<Result<()>> {
     const CDN_URL: &str = "https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/";
     const KATEX_DIR: &str = "katex";
@@ -410,7 +474,7 @@ async fn main() -> Result<()> {
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
-    let (link_map, lookup_tree, floating_pages) = bisect_pages(pages)?;
+    let (link_map, lookup_tree, independent_pages) = bisect_pages(pages)?;
 
     let (first_date, last_date) =
         match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
@@ -425,14 +489,16 @@ async fn main() -> Result<()> {
         generate_years(&lookup_tree, &link_map, first_date, last_date)?,
         generate_months(&lookup_tree, &link_map, first_date, last_date)?,
         generate_days(&lookup_tree, &link_map)?,
+        generate_independents(independent_pages, &link_map)?,
     )?;
 
     match results {
-        (Err(error), _, _, _) => return Err(error),
-        (_, Err(error), _, _) => return Err(error),
-        (_, _, Err(error), _) => return Err(error),
-        (_, _, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _, _) => return Err(error),
+        (_, Err(error), _, _, _) => return Err(error),
+        (_, _, Err(error), _, _) => return Err(error),
+        (_, _, _, Err(error), _) => return Err(error),
+        (_, _, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     Ok(())
