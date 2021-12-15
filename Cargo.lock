@@ -168,6 +168,7 @@ dependencies = [
  "anyhow",
  "either",
  "futures-util",
+ "itertools 0.10.3",
  "maud",
  "notion-generator",
  "reqwest",

@@ -3,6 +3,7 @@
 use anyhow::{bail, Context, Result};
 use either::Either;
 use futures_util::stream::{FuturesUnordered, TryStreamExt};
+use itertools::Itertools;
 use maud::{html, DOCTYPE};
 use notion_generator::{
     client::NotionClient,
@@ -198,6 +199,83 @@ mod months {
     }
 }
 
+fn generate_months(
+    lookup_tree: &BTreeMap<Date, Page<Properties>>,
+    link_map: &HashMap<String, String>,
+    first_date: &Date,
+    last_date: &Date,
+) -> Result<JoinHandle<Result<()>>> {
+    let months = (first_date.year()..=last_date.year())
+        .cartesian_product(months::all())
+        .map(|(year, &month)| {
+            let first_day = Date::from_calendar_date(year, month, 1).unwrap();
+            let the_year_next_month = if month == Month::December {
+                year + 1
+            } else {
+                year
+            };
+            let next_month =
+                Date::from_calendar_date(the_year_next_month, month.next(), 1).unwrap();
+
+            let range = lookup_tree.range(first_day..next_month);
+
+            let (current_pages, pages) = range
+                .map(|(_, page)| (page.id.clone(), page))
+                .unzip::<_, _, HashSet<_>, Vec<_>>();
+
+            if pages.is_empty() {
+                return Ok(None);
+            }
+
+            let renderer = HtmlRenderer {
+                heading_anchors: HeadingAnchors::Icon,
+                current_pages,
+                link_map: link_map.clone(),
+            };
+
+            let rendered_pages = pages
+                .into_iter()
+                .map(|page| renderer.render_page(page).map(|(markup, _)| markup));
+
+            let markup = html! {
+                (DOCTYPE)
+                html lang="en" {
+                    head {
+                        meta charset="utf-8";
+                        meta name="viewport" content="width=device-width, initial-scale=1";
+                        link rel="stylesheet" href="/katex/katex.min.css";
+
+                        title { (format!("{} {}", month, year)) }
+                    }
+                    body {
+                        main {
+                            @for block in rendered_pages {
+                                (block?)
+                            }
+                        }
+                    }
+                }
+            };
+
+            let mut path = Path::new(EXPORT_DIR)
+                .join(format!("{:0>4}", year))
+                .join(format!("{:0>2}", u8::from(month)));
+            path.set_extension("html");
+            Ok(Some((path, markup)))
+        })
+        .map(|result| {
+            result.map(|option| async move {
+                match option {
+                    Some((path, markup)) => write(path, markup.into_string()).await,
+                    None => Ok(()),
+                }
+            })
+        })
+        .collect::<Result<FuturesUnordered<_>>>()?;
+
+    Ok(tokio::spawn(months.try_collect::<()>()))
+}
+
 fn katex_download(client: Client) -> JoinHandle<Result<()>> {
     const CDN_URL: &str = "https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/";
     const KATEX_DIR: &str = "katex";
@@ -275,12 +353,14 @@ async fn main() -> Result<()> {
     let results = tokio::try_join!(
         katex_download(client.client().clone()),
         generate_years(&lookup_tree, &link_map, first_date, last_date)?,
+        generate_months(&lookup_tree, &link_map, first_date, last_date)?,
     )?;
 
     match results {
-        (Err(error), _) => return Err(error),
-        (_, Err(error)) => return Err(error),
-        (Ok(()), Ok(())) => {}
+        (Err(error), _, _) => return Err(error),
+        (_, Err(error), _) => return Err(error),
+        (_, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(())) => {}
     };
 
     Ok(())
