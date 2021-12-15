@@ -42,60 +42,71 @@ impl Title for Properties {
     }
 }
 
-fn bisect_pages(
-    pages: Vec<Page<Properties>>,
-) -> Result<(
-    HashMap<String, String>,
-    BTreeMap<Date, Page<Properties>>,
-    Vec<(String, Page<Properties>)>,
-)> {
-    let length = pages.len();
+struct Generator {
+    link_map: HashMap<String, String>,
+    lookup_tree: BTreeMap<Date, Page<Properties>>,
+    independent_pages: Vec<(String, Page<Properties>)>,
+}
 
-    Ok(pages
-        .into_iter()
-        .map(|page| {
-            let date = page.properties.date.date.as_ref().map(|date| date.start.parsed);
-            let url = page.properties.url.rich_text.plain_text();
-            let url = Some(url).filter(|url| url.is_empty().not());
+impl Generator {
+    fn new(pages: Vec<Page<Properties>>) -> Result<Generator> {
+        let length = pages.len();
 
-            let (path, identifier) = match (date, url) {
-                (Some(Either::Right(datetime)), _) => bail!(
-                    "Diary dates must not contain time but page {} has datetime {}",
-                    page.id,
-                    datetime
-                ),
-                (Some(Either::Left(date)), Some(url)) => bail!(
-                    "Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}",
-                    page.id,
-                    date,
-                    url
-                ),
-                (None, None) => bail!("Diary pages must have either a date or a URL"),
-                (Some(Either::Left(date)), None) => (date.format(format_description!("/[year]/[month]/[day]"))?, Either::Left(date)),
-                (None, Some(url)) => (format!("/{}", url), Either::Right(url))
-            };
+        let (link_map, lookup_tree, independent_pages) = pages
+            .into_iter()
+            .map(|page| {
+                let date = page
+                    .properties
+                    .date
+                    .date
+                    .as_ref()
+                    .map(|date| date.start.parsed);
+                let url = page.properties.url.rich_text.plain_text();
+                let url = Some(url).filter(|url| url.is_empty().not());
 
-            Ok((page, path, identifier))
-        })
-        .fold::<Result<_>, _>(
-            Ok((HashMap::with_capacity(length), BTreeMap::new(), Vec::new())),
-            |acc, result: Result<_>| {
-                let (mut link_map, mut lookup_tree, mut floating_pages) = acc?;
-                let (page, path, identifier) = result?;
-
-                link_map.insert(page.id.clone(), path);
-                match identifier {
-                    Either::Left(date) => {
-                        lookup_tree.insert(date, page);
-                    },
-                    Either::Right(url) => {
-                        floating_pages.push((url, page));
-                    },
+                let (path, identifier) = match (date, url) {
+                    (Some(Either::Right(datetime)), _) => bail!(
+                        "Diary dates must not contain time but page {} has datetime {}",
+                        page.id,
+                        datetime
+                    ),
+                    (Some(Either::Left(date)), Some(url)) => bail!("Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}", page.id, date, url),
+                    (None, None) => bail!("Diary pages must have either a date or a URL"),
+                    (Some(Either::Left(date)), None) => (
+                        date.format(format_description!("/[year]/[month]/[day]"))?,
+                        Either::Left(date),
+                    ),
+                    (None, Some(url)) => (format!("/{}", url), Either::Right(url)),
                 };
 
-                Ok((link_map, lookup_tree, floating_pages))
-            },
-        )?)
+                Ok((page, path, identifier))
+            })
+            .fold::<Result<_>, _>(
+                Ok((HashMap::with_capacity(length), BTreeMap::new(), Vec::new())),
+                |acc, result: Result<_>| {
+                    let (mut link_map, mut lookup_tree, mut independent_pages) = acc?;
+                    let (page, path, identifier) = result?;
+
+                    link_map.insert(page.id.clone(), path);
+                    match identifier {
+                        Either::Left(date) => {
+                            lookup_tree.insert(date, page);
+                        }
+                        Either::Right(url) => {
+                            independent_pages.push((url, page));
+                        }
+                    };
+
+                    Ok((link_map, lookup_tree, independent_pages))
+                },
+            )?;
+
+        Ok(Generator {
+            link_map,
+            lookup_tree,
+            independent_pages,
+        })
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
@@ -474,7 +485,11 @@ async fn main() -> Result<()> {
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
-    let (link_map, lookup_tree, independent_pages) = bisect_pages(pages)?;
+    let Generator {
+        link_map,
+        lookup_tree,
+        independent_pages,
+    } = Generator::new(pages)?;
 
     let (first_date, last_date) =
         match (lookup_tree.first_key_value(), lookup_tree.last_key_value()) {
