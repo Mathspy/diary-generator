@@ -9,6 +9,7 @@ use itertools::Itertools;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 use notion_generator::{
     client::NotionClient,
+    download::Downloadables,
     options::HeadingAnchors,
     render::Title,
     response::{
@@ -50,6 +51,7 @@ struct Generator {
     link_map: HashMap<NotionId, String>,
     lookup_tree: BTreeMap<Date, Page<Properties>>,
     independent_pages: Vec<(String, Page<Properties>)>,
+    downloadables: Downloadables,
     today: Date,
     head: Markup,
 }
@@ -111,7 +113,10 @@ impl Generator {
 
         let head = PreEscaped(read_partial_file("head.html").await?);
 
+        let downloadables = Downloadables::new();
+
         Ok(Generator {
+            downloadables,
             link_map,
             lookup_tree,
             independent_pages,
@@ -170,11 +175,10 @@ impl Generator {
                     heading_anchors: HeadingAnchors::Icon,
                     current_pages,
                     link_map: &self.link_map,
+                    downloadables: &self.downloadables,
                 };
 
-                let rendered_pages = pages
-                    .into_iter()
-                    .map(|page| renderer.render_page(page).map(|(markup, _)| markup));
+                let rendered_pages = pages.into_iter().map(|page| renderer.render_page(page));
 
                 let markup = html! {
                     (DOCTYPE)
@@ -237,11 +241,10 @@ impl Generator {
                     heading_anchors: HeadingAnchors::Icon,
                     current_pages,
                     link_map: &self.link_map,
+                    downloadables: &self.downloadables,
                 };
 
-                let rendered_pages = pages
-                    .into_iter()
-                    .map(|page| renderer.render_page(page).map(|(markup, _)| markup));
+                let rendered_pages = pages.into_iter().map(|page| renderer.render_page(page));
 
                 let markup = html! {
                     (DOCTYPE)
@@ -287,9 +290,10 @@ impl Generator {
                     heading_anchors: HeadingAnchors::Icon,
                     current_pages: HashSet::from([page.id]),
                     link_map: &self.link_map,
+                    downloadables: &self.downloadables,
                 };
 
-                let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
+                let rendered_page = renderer.render_page(page)?;
 
                 let title = page.properties.title().plain_text();
                 let description = page
@@ -348,9 +352,10 @@ impl Generator {
                     heading_anchors: HeadingAnchors::Icon,
                     current_pages: HashSet::from([page.id]),
                     link_map: &self.link_map,
+                    downloadables: &self.downloadables,
                 };
 
-                let rendered_page = renderer.render_page(page).map(|(markup, _)| markup)?;
+                let rendered_page = renderer.render_page(page)?;
 
                 let title = page.properties.title().plain_text();
                 let description = page
@@ -532,6 +537,11 @@ async fn main() -> Result<()> {
         (_, _, _, _, _, Err(error)) => return Err(error),
         (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
+
+    generator
+        .downloadables
+        .download_all(client.client().clone(), Path::new(EXPORT_DIR))
+        .await?;
 
     Ok(())
 }
