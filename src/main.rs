@@ -13,7 +13,7 @@ use notion_generator::{
     render::Title,
     response::{
         properties::{DateProperty, RichTextProperty, TitleProperty},
-        Page, PlainText, RichText,
+        NotionId, Page, PlainText, RichText,
     },
     HtmlRenderer,
 };
@@ -47,7 +47,7 @@ impl Title for Properties {
 }
 
 struct Generator {
-    link_map: HashMap<String, String>,
+    link_map: HashMap<NotionId, String>,
     lookup_tree: BTreeMap<Date, Page<Properties>>,
     independent_pages: Vec<(String, Page<Properties>)>,
     today: Date,
@@ -93,7 +93,7 @@ impl Generator {
                     let (mut link_map, mut lookup_tree, mut independent_pages) = acc?;
                     let (page, path, identifier) = result?;
 
-                    link_map.insert(page.id.clone(), path);
+                    link_map.insert(page.id, path);
                     match identifier {
                         Either::Left(date) => {
                             lookup_tree.insert(date, page);
@@ -159,7 +159,7 @@ impl Generator {
                 let (current_pages, pages) = range
                     .map(|(_, page)| page)
                     .filter(|page| self.filter_unpublished(page))
-                    .map(|page| (page.id.clone(), page))
+                    .map(|page| (page.id, page))
                     .unzip::<_, _, HashSet<_>, Vec<_>>();
 
                 if pages.is_empty() {
@@ -226,7 +226,7 @@ impl Generator {
                 let (current_pages, pages) = range
                     .map(|(_, page)| page)
                     .filter(|page| self.filter_unpublished(page))
-                    .map(|page| (page.id.clone(), page))
+                    .map(|page| (page.id, page))
                     .unzip::<_, _, HashSet<_>, Vec<_>>();
 
                 if pages.is_empty() {
@@ -285,7 +285,7 @@ impl Generator {
             .map(|(date, page)| {
                 let renderer = HtmlRenderer {
                     heading_anchors: HeadingAnchors::Icon,
-                    current_pages: HashSet::from([page.id.clone()]),
+                    current_pages: HashSet::from([page.id]),
                     link_map: &self.link_map,
                 };
 
@@ -346,7 +346,7 @@ impl Generator {
             .map(|(url, page)| {
                 let renderer = HtmlRenderer {
                     heading_anchors: HeadingAnchors::Icon,
-                    current_pages: HashSet::from([page.id.clone()]),
+                    current_pages: HashSet::from([page.id]),
                     link_map: &self.link_map,
                 };
 
