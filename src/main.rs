@@ -172,7 +172,7 @@ impl Generator {
                 }
 
                 let renderer = HtmlRenderer {
-                    heading_anchors: HeadingAnchors::Icon,
+                    heading_anchors: HeadingAnchors::After("#"),
                     current_pages,
                     link_map: &self.link_map,
                     downloadables: &self.downloadables,
@@ -238,7 +238,7 @@ impl Generator {
                 }
 
                 let renderer = HtmlRenderer {
-                    heading_anchors: HeadingAnchors::Icon,
+                    heading_anchors: HeadingAnchors::After("#"),
                     current_pages,
                     link_map: &self.link_map,
                     downloadables: &self.downloadables,
@@ -287,7 +287,7 @@ impl Generator {
             .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(date, page)| {
                 let renderer = HtmlRenderer {
-                    heading_anchors: HeadingAnchors::Icon,
+                    heading_anchors: HeadingAnchors::After("#"),
                     current_pages: HashSet::from([page.id]),
                     link_map: &self.link_map,
                     downloadables: &self.downloadables,
@@ -349,7 +349,7 @@ impl Generator {
             .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(url, page)| {
                 let renderer = HtmlRenderer {
-                    heading_anchors: HeadingAnchors::Icon,
+                    heading_anchors: HeadingAnchors::After("#"),
                     current_pages: HashSet::from([page.id]),
                     link_map: &self.link_map,
                     downloadables: &self.downloadables,
