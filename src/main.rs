@@ -14,7 +14,7 @@ use notion_generator::{
     render::{Heading, Title},
     response::{
         properties::{DateProperty, RichTextProperty, TitleProperty},
-        NotionId, Page, PlainText, RichText,
+        NotionDate, NotionId, Page, PlainText, RichText,
     },
     HtmlRenderer,
 };
@@ -26,7 +26,7 @@ use std::{
     ops::Not,
     path::{Path, PathBuf},
 };
-use time::{macros::format_description, Date, Month};
+use time::{format_description::FormatItem, macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
 use utils::spawn_copy_all;
 
@@ -51,10 +51,35 @@ fn render_article<I>(renderer: &HtmlRenderer, page: &Page<Properties>, blocks: I
 where
     I: Iterator<Item = Result<Markup>>,
 {
+    fn get_date(date: &NotionDate) -> Date {
+        match date.start.parsed {
+            Either::Left(date) => date,
+            Either::Right(datetime) => datetime.date(),
+        }
+    }
+
+    let date = page
+        .properties
+        .date
+        .date
+        .as_ref()
+        .map(get_date)
+        .or_else(|| page.properties.published.date.as_ref().map(get_date));
+
+    const HTML_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
+    const READABLE_DATE: &[FormatItem<'_>] = format_description!("[month repr:long] [day], [year]");
+
     Ok(html! {
         article {
             header {
                 (renderer.render_heading(page.id, None, Heading::H1, page.properties.title()))
+                @if let Some(date) = date {
+                    p {
+                        time datetime=(date.format(HTML_FORMAT)?) {
+                            (date.format(READABLE_DATE)?)
+                        }
+                    }
+                }
             }
             @for block in blocks {
                 (block?)
