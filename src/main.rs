@@ -11,7 +11,7 @@ use notion_generator::{
     client::NotionClient,
     download::Downloadables,
     options::HeadingAnchors,
-    render::Title,
+    render::{Heading, Title},
     response::{
         properties::{DateProperty, RichTextProperty, TitleProperty},
         NotionId, Page, PlainText, RichText,
@@ -45,6 +45,22 @@ impl Title for Properties {
     fn title(&self) -> &[RichText] {
         self.name.title.as_slice()
     }
+}
+
+fn render_article<I>(renderer: &HtmlRenderer, page: &Page<Properties>, blocks: I) -> Result<Markup>
+where
+    I: Iterator<Item = Result<Markup>>,
+{
+    Ok(html! {
+        article {
+            header {
+                (renderer.render_heading(page.id, None, Heading::H1, page.properties.title()))
+            }
+            @for block in blocks {
+                (block?)
+            }
+        }
+    })
 }
 
 struct Generator {
@@ -178,7 +194,9 @@ impl Generator {
                     downloadables: &self.downloadables,
                 };
 
-                let rendered_pages = pages.into_iter().map(|page| renderer.render_page(page));
+                let rendered_pages = pages
+                    .into_iter()
+                    .map(|page| (page, renderer.render_blocks(&page.children, None, 1)));
 
                 let markup = html! {
                     (DOCTYPE)
@@ -194,10 +212,8 @@ impl Generator {
                         }
                         body {
                             main {
-                                @for block in rendered_pages {
-                                    article {
-                                        (block?)
-                                    }
+                                @for (page, blocks) in rendered_pages {
+                                    (render_article(&renderer, page, blocks)?)
                                 }
                             }
                         }
@@ -246,7 +262,9 @@ impl Generator {
                     downloadables: &self.downloadables,
                 };
 
-                let rendered_pages = pages.into_iter().map(|page| renderer.render_page(page));
+                let rendered_pages = pages
+                    .into_iter()
+                    .map(|page| (page, renderer.render_blocks(&page.children, None, 1)));
 
                 let markup = html! {
                     (DOCTYPE)
@@ -262,10 +280,8 @@ impl Generator {
                         }
                         body {
                             main {
-                                @for block in rendered_pages {
-                                    article {
-                                        (block?)
-                                    }
+                                @for (page, blocks) in rendered_pages {
+                                    (render_article(&renderer, page, blocks)?)
                                 }
                             }
                         }
@@ -297,7 +313,7 @@ impl Generator {
                     downloadables: &self.downloadables,
                 };
 
-                let rendered_page = renderer.render_page(page)?;
+                let blocks = renderer.render_blocks(&page.children, None, 1);
 
                 let title = page.properties.title().plain_text();
                 let description = page
@@ -327,9 +343,7 @@ impl Generator {
                         }
                         body {
                             main {
-                                article {
-                                    (rendered_page)
-                                }
+                                (render_article(&renderer, page, blocks)?)
                             }
                         }
                     }
@@ -361,7 +375,7 @@ impl Generator {
                     downloadables: &self.downloadables,
                 };
 
-                let rendered_page = renderer.render_page(page)?;
+                let blocks = renderer.render_blocks(&page.children, None, 1);
 
                 let title = page.properties.title().plain_text();
                 let description = page
@@ -391,9 +405,7 @@ impl Generator {
                         }
                         body {
                             main {
-                                article {
-                                    (rendered_page)
-                                }
+                                (render_article(&renderer, page, blocks)?)
                             }
                         }
                     }
