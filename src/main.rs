@@ -195,7 +195,9 @@ impl Generator {
                         body {
                             main {
                                 @for block in rendered_pages {
-                                    (block?)
+                                    article {
+                                        (block?)
+                                    }
                                 }
                             }
                         }
@@ -261,7 +263,9 @@ impl Generator {
                         body {
                             main {
                                 @for block in rendered_pages {
-                                    (block?)
+                                    article {
+                                        (block?)
+                                    }
                                 }
                             }
                         }
@@ -323,7 +327,9 @@ impl Generator {
                         }
                         body {
                             main {
-                                (rendered_page)
+                                article {
+                                    (rendered_page)
+                                }
                             }
                         }
                     }
@@ -385,7 +391,9 @@ impl Generator {
                         }
                         body {
                             main {
-                                (rendered_page)
+                                article {
+                                    (rendered_page)
+                                }
                             }
                         }
                     }
