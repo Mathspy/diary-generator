@@ -95,6 +95,8 @@ struct Generator {
     downloadables: Downloadables,
     today: Date,
     head: Markup,
+    header: Markup,
+    footer: Markup,
 }
 
 impl Generator {
@@ -152,7 +154,14 @@ impl Generator {
 
         let today = time::OffsetDateTime::now_utc().date();
 
-        let head = PreEscaped(read_partial_file("head.html").await?);
+        let (head, header, footer) = tokio::try_join!(
+            read_partial_file("head.html"),
+            read_partial_file("header.html"),
+            read_partial_file("footer.html"),
+        )?;
+        let head = PreEscaped(head);
+        let header = PreEscaped(header);
+        let footer = PreEscaped(footer);
 
         let downloadables = Downloadables::new();
 
@@ -163,6 +172,8 @@ impl Generator {
             independent_pages,
             today,
             head,
+            header,
+            footer,
         })
     }
 
@@ -236,10 +247,16 @@ impl Generator {
                             (self.head)
                         }
                         body {
+                            header {
+                                (self.header)
+                            }
                             main {
                                 @for (page, blocks) in rendered_pages {
                                     (render_article(&renderer, page, blocks)?)
                                 }
+                            }
+                            footer {
+                                (self.footer)
                             }
                         }
                     }
@@ -304,10 +321,16 @@ impl Generator {
                             (self.head)
                         }
                         body {
+                            header {
+                                (self.header)
+                            }
                             main {
                                 @for (page, blocks) in rendered_pages {
                                     (render_article(&renderer, page, blocks)?)
                                 }
+                            }
+                            footer {
+                                (self.footer)
                             }
                         }
                     }
@@ -367,8 +390,14 @@ impl Generator {
                             (self.head)
                         }
                         body {
+                            header {
+                                (self.header)
+                            }
                             main {
                                 (render_article(&renderer, page, blocks)?)
+                            }
+                            footer {
+                                (self.footer)
                             }
                         }
                     }
@@ -429,8 +458,14 @@ impl Generator {
                             (self.head)
                         }
                         body {
+                            header {
+                                (self.header)
+                            }
                             main {
                                 (render_article(&renderer, page, blocks)?)
+                            }
+                            footer {
+                                (self.footer)
                             }
                         }
                     }
