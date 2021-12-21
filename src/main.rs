@@ -47,6 +47,19 @@ impl Title for Properties {
     }
 }
 
+fn render_article_time(date: Date) -> Result<Markup> {
+    const HTML_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
+    const READABLE_DATE: &[FormatItem<'_>] = format_description!("[month repr:long] [day], [year]");
+
+    Ok(html! {
+        p {
+            time datetime=(date.format(HTML_FORMAT)?) {
+                (date.format(READABLE_DATE)?)
+            }
+        }
+    })
+}
+
 fn render_article<I>(renderer: &HtmlRenderer, page: &Page<Properties>, blocks: I) -> Result<Markup>
 where
     I: Iterator<Item = Result<Markup>>,
@@ -66,19 +79,12 @@ where
         .map(get_date)
         .or_else(|| page.properties.published.date.as_ref().map(get_date));
 
-    const HTML_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
-    const READABLE_DATE: &[FormatItem<'_>] = format_description!("[month repr:long] [day], [year]");
-
     Ok(html! {
         article {
             header {
                 (renderer.render_heading(page.id, None, Heading::H1, page.properties.title()))
                 @if let Some(date) = date {
-                    p {
-                        time datetime=(date.format(HTML_FORMAT)?) {
-                            (date.format(READABLE_DATE)?)
-                        }
-                    }
+                    (render_article_time(date)?)
                 }
             }
             @for block in blocks {
