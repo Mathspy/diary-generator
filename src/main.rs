@@ -437,6 +437,139 @@ impl Generator {
         Ok(tokio::spawn(days.try_collect::<()>()))
     }
 
+    fn generate_index_page(&self) -> Result<JoinHandle<Result<()>>> {
+        struct IndexMonth {
+            month: (i32, Month),
+            markup: String,
+        }
+
+        struct IndexYear {
+            year: i32,
+            markup: String,
+        }
+
+        let renderer = HtmlRenderer {
+            heading_anchors: HeadingAnchors::After("#"),
+            current_pages: HashSet::new(),
+            link_map: &self.link_map,
+            downloadables: &self.downloadables,
+        };
+
+        let years = self
+            .lookup_tree
+            .iter()
+            .filter(|(_, page)| self.filter_unpublished(page))
+            .map(|(&date, page)| IndexMonth {
+                month: (date.year(), date.month()),
+                markup: (html! {
+                    article {
+                        header {
+                            h3 {
+                                a href=(format_day(date)) {
+                                    (renderer.render_rich_text(page.properties.title()))
+                                }
+                            }
+                            (render_article_time(date).unwrap())
+                        }
+                        p {
+                            (page.properties.description.rich_text.plain_text())
+                        }
+                    }
+                })
+                .into_string(),
+            })
+            .coalesce(|a, b| {
+                if a.month == b.month {
+                    Ok(IndexMonth {
+                        month: a.month,
+                        markup: a.markup + &b.markup,
+                    })
+                } else {
+                    Err((a, b))
+                }
+            })
+            .map(
+                |IndexMonth {
+                     month: (year, month),
+                     markup,
+                 }| IndexYear {
+                    year,
+                    markup: (html! {
+                        section {
+                            h2 {
+                                a href=(format_month(year, month)) {
+                                    (month)
+                                }
+                            }
+                            (PreEscaped(markup))
+                        }
+                    })
+                    .into_string(),
+                },
+            )
+            .coalesce(|a, b| {
+                if a.year == b.year {
+                    Ok(IndexYear {
+                        year: a.year,
+                        markup: a.markup + &b.markup,
+                    })
+                } else {
+                    Err((a, b))
+                }
+            })
+            .map(|IndexYear { year, markup }| {
+                html! {
+                    section {
+                        h1 {
+                            a href=(format_year(year)) {
+                                (year)
+                            }
+                        }
+                        (PreEscaped(markup))
+                    }
+                }
+            });
+
+        let markup = html! {
+            (DOCTYPE)
+            html lang="en" {
+                head {
+                    meta charset="utf-8";
+                    meta name="viewport" content="width=device-width, initial-scale=1";
+                    // @if description.len() != 0 {
+                    //     meta name="description" content=(description);
+                    // }
+                    link rel="stylesheet" href="/katex/katex.min.css";
+                    // TODO: Add `- Game Dev Diary` after each title
+                    title { "Diary" }
+
+                    meta property="og:title" content="Diary";
+                    // TODO: Rest of OG meta properties
+
+                    (self.head)
+                }
+                body {
+                    header {
+                        (self.header)
+                    }
+                    main {
+                        @for year in years {
+                            (year)
+                        }
+                    }
+                    footer {
+                        (self.footer)
+                    }
+                }
+            }
+        };
+
+        let mut path = Path::new(EXPORT_DIR).join("index");
+        path.set_extension("html");
+
+        Ok(tokio::spawn(write(path, markup.into_string())))
+    }
+
     fn generate_independents(&self) -> Result<JoinHandle<Result<()>>> {
         let independents = self
             .independent_pages
@@ -626,17 +759,19 @@ async fn main() -> Result<()> {
         generator.generate_months(first_date, last_date)?,
         generator.generate_days()?,
         generator.generate_independents()?,
+        generator.generate_index_page()?,
         spawn_copy_all(Path::new("public"), Path::new(EXPORT_DIR))
     )?;
 
     match results {
-        (Err(error), _, _, _, _, _) => return Err(error),
-        (_, Err(error), _, _, _, _) => return Err(error),
-        (_, _, Err(error), _, _, _) => return Err(error),
-        (_, _, _, Err(error), _, _) => return Err(error),
-        (_, _, _, _, Err(error), _) => return Err(error),
-        (_, _, _, _, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _, _, _, _) => return Err(error),
+        (_, Err(error), _, _, _, _, _) => return Err(error),
+        (_, _, Err(error), _, _, _, _) => return Err(error),
+        (_, _, _, Err(error), _, _, _) => return Err(error),
+        (_, _, _, _, Err(error), _, _) => return Err(error),
+        (_, _, _, _, _, Err(error), _) => return Err(error),
+        (_, _, _, _, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     generator
