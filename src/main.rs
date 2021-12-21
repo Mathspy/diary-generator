@@ -60,17 +60,17 @@ fn render_article_time(date: Date) -> Result<Markup> {
     })
 }
 
+fn get_date(date: &NotionDate) -> Date {
+    match date.start.parsed {
+        Either::Left(date) => date,
+        Either::Right(datetime) => datetime.date(),
+    }
+}
+
 fn render_article<I>(renderer: &HtmlRenderer, page: &Page<Properties>, blocks: I) -> Result<Markup>
 where
     I: Iterator<Item = Result<Markup>>,
 {
-    fn get_date(date: &NotionDate) -> Date {
-        match date.start.parsed {
-            Either::Left(date) => date,
-            Either::Right(datetime) => datetime.date(),
-        }
-    }
-
     let date = page
         .properties
         .date
@@ -634,6 +634,78 @@ impl Generator {
 
         Ok(tokio::spawn(independents.try_collect::<()>()))
     }
+
+    fn generate_articles_page(&self) -> Result<JoinHandle<Result<()>>> {
+        let renderer = HtmlRenderer {
+            heading_anchors: HeadingAnchors::After("#"),
+            current_pages: HashSet::from([]),
+            link_map: &self.link_map,
+            downloadables: &self.downloadables,
+        };
+
+        let articles = self.independent_pages.iter().filter_map(|(url, page)| {
+            let published_date = page.properties.published.date.as_ref().map(get_date);
+
+            let published_date = match published_date {
+                Some(published_date) if self.filter_unpublished(page) => published_date,
+                _ => return None,
+            };
+
+            Some(html! {
+                article {
+                    header {
+                        h3 {
+                            a href=(url) {
+                                (renderer.render_rich_text(page.properties.title()))
+                            }
+                        }
+                        (render_article_time(published_date).unwrap())
+                    }
+                    p {
+                        (page.properties.description.rich_text.plain_text())
+                    }
+                }
+            })
+        });
+
+        let markup = html! {
+            (DOCTYPE)
+            html lang="en" {
+                head {
+                    meta charset="utf-8";
+                    meta name="viewport" content="width=device-width, initial-scale=1";
+                    // @if description.len() != 0 {
+                    //     meta name="description" content=(description);
+                    // }
+                    link rel="stylesheet" href="/katex/katex.min.css";
+                    // TODO: Add `- Game Dev Diary` after each title
+                    title { "Articles - Diary" }
+
+                    meta property="og:title" content="Articles - Diary";
+                    // TODO: Rest of OG meta properties
+
+                    (self.head)
+                }
+                body {
+                    header {
+                        (self.header)
+                    }
+                    main {
+                        @for article in articles {
+                            (article)
+                        }
+                    }
+                    footer {
+                        (self.footer)
+                    }
+                }
+            }
+        };
+
+        let mut path = Path::new(EXPORT_DIR).join("articles");
+        path.set_extension("html");
+        Ok(tokio::spawn(write(path, markup.into_string())))
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
@@ -760,18 +832,20 @@ async fn main() -> Result<()> {
         generator.generate_days()?,
         generator.generate_independents()?,
         generator.generate_index_page()?,
+        generator.generate_articles_page()?,
         spawn_copy_all(Path::new("public"), Path::new(EXPORT_DIR))
     )?;
 
     match results {
-        (Err(error), _, _, _, _, _, _) => return Err(error),
-        (_, Err(error), _, _, _, _, _) => return Err(error),
-        (_, _, Err(error), _, _, _, _) => return Err(error),
-        (_, _, _, Err(error), _, _, _) => return Err(error),
-        (_, _, _, _, Err(error), _, _) => return Err(error),
-        (_, _, _, _, _, Err(error), _) => return Err(error),
-        (_, _, _, _, _, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _, _, _, _, _) => return Err(error),
+        (_, Err(error), _, _, _, _, _, _) => return Err(error),
+        (_, _, Err(error), _, _, _, _, _) => return Err(error),
+        (_, _, _, Err(error), _, _, _, _) => return Err(error),
+        (_, _, _, _, Err(error), _, _, _) => return Err(error),
+        (_, _, _, _, _, Err(error), _, _) => return Err(error),
+        (_, _, _, _, _, _, Err(error), _) => return Err(error),
+        (_, _, _, _, _, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     generator
