@@ -88,6 +88,26 @@ where
     })
 }
 
+#[inline]
+fn format_year(year: i32) -> String {
+    format!("{:0>4}", year)
+}
+
+#[inline]
+fn format_month(year: i32, month: Month) -> String {
+    format!("{:0>4}/{:0>2}", year, u8::from(month))
+}
+
+#[inline]
+fn format_day(date: Date) -> String {
+    format!(
+        "{:0>4}/{:0>2}/{:0>2}",
+        date.year(),
+        u8::from(date.month()),
+        date.day()
+    )
+}
+
 struct Generator {
     link_map: HashMap<NotionId, String>,
     lookup_tree: BTreeMap<Date, Page<Properties>>,
@@ -262,7 +282,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(format!("{:0>4}", year));
+                let mut path = Path::new(EXPORT_DIR).join(format_year(year));
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -336,9 +356,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR)
-                    .join(format!("{:0>4}", year))
-                    .join(format!("{:0>2}", u8::from(month)));
+                let mut path = Path::new(EXPORT_DIR).join(format_month(year, month));
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -403,10 +421,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR)
-                    .join(format!("{:0>4}", date.year()))
-                    .join(format!("{:0>2}", u8::from(date.month())))
-                    .join(format!("{:0>2}", date.day()));
+                let mut path = Path::new(EXPORT_DIR).join(format_day(*date));
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
