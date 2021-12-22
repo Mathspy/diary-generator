@@ -783,8 +783,10 @@ impl Generator {
 
                     let content = tokio::fs::read_to_string(entry.path()).await?;
 
-                    let mut file_name = file_name;
-                    if let Some(first_char) = file_name.get_mut(0..1) {
+                    let output_path = Path::new(EXPORT_DIR).join(&file_name);
+
+                    let mut title = file_name;
+                    if let Some(first_char) = title.get_mut(0..1) {
                         first_char.make_ascii_uppercase();
                     }
 
@@ -794,7 +796,7 @@ impl Generator {
                             head {
                                 meta charset="utf-8";
                                 meta name="viewport" content="width=device-width, initial-scale=1";
-                                title { (file_name) " - " (config_ref.name) }
+                                title { (title) " - " (config_ref.name) }
 
                                 (*head_ref)
                             }
@@ -810,7 +812,7 @@ impl Generator {
                         }
                     };
 
-                    write(Path::new(EXPORT_DIR).join(file_name), markup.into_string()).await
+                    write(output_path, markup.into_string()).await
                 })
                 .try_collect::<()>()
                 .await
