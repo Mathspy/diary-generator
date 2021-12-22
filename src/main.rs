@@ -4,7 +4,7 @@ mod utils;
 
 use anyhow::{bail, Context, Result};
 use either::Either;
-use futures_util::stream::{FuturesUnordered, TryStreamExt};
+use futures_util::stream::{FuturesUnordered, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 use notion_generator::{
@@ -28,6 +28,7 @@ use std::{
 };
 use time::{format_description::FormatItem, macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
+use tokio_stream::wrappers::ReadDirStream;
 use utils::spawn_copy_all;
 
 const EXPORT_DIR: &str = "output";
@@ -706,6 +707,83 @@ impl Generator {
         path.set_extension("html");
         Ok(tokio::spawn(write(path, markup.into_string())))
     }
+
+    /// Generate independent pages by reading the pages/ directory and using each of the file in it
+    /// as partial content for a page
+    /// The pages titles currently depend on the file name as well
+    /// These pages are called independent as they don't depend on Notion
+    fn generate_independent_pages(&self) -> JoinHandle<Result<()>> {
+        // We need to clone these so that the spawned future is 'static (AKA owns everything inside
+        // of it)
+        let head = self.head.clone();
+        let header = self.header.clone();
+        let footer = self.footer.clone();
+
+        tokio::spawn(async move {
+            let files = ReadDirStream::new(tokio::fs::read_dir("pages").await?);
+
+            // We do this so that the inner futures in `.and_then` don't take ownership of these
+            // causing them to be unusable by subsequent calls to `.and_then`
+            let head_ref = &head;
+            let header_ref = &header;
+            let footer_ref = &footer;
+
+            files
+                .map(|result| {
+                    result.context(
+                        "Failed to read file while recursively generating independent pages",
+                    )
+                })
+                .and_then(|entry| async move {
+                    let file_type = entry.file_type().await?;
+                    let file_name = match entry.file_name().into_string() {
+                        Ok(file_name) => file_name,
+                        Err(_) => bail!("A file in pages directory has a non-utf8 valid name"),
+                    };
+
+                    if !file_type.is_file() {
+                        bail!(
+                            "Pages directory must only contain HTML files but was passed {}",
+                            file_name
+                        );
+                    }
+
+                    let content = tokio::fs::read_to_string(entry.path()).await?;
+
+                    let mut file_name = file_name;
+                    if let Some(first_char) = file_name.get_mut(0..1) {
+                        first_char.make_ascii_uppercase();
+                    }
+
+                    let markup = html! {
+                        (DOCTYPE)
+                        html lang="en" {
+                            head {
+                                meta charset="utf-8";
+                                meta name="viewport" content="width=device-width, initial-scale=1";
+                                // TODO: Add `- Game Dev Diary` after each title
+                                title { (file_name) " - Diary" }
+
+                                (*head_ref)
+                            }
+                            body {
+                                header {
+                                    (*header_ref)
+                                }
+                                (PreEscaped(content))
+                                footer {
+                                    (*footer_ref)
+                                }
+                            }
+                        }
+                    };
+
+                    write(Path::new(EXPORT_DIR).join(file_name), markup.into_string()).await
+                })
+                .try_collect::<()>()
+                .await
+        })
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
@@ -833,19 +911,21 @@ async fn main() -> Result<()> {
         generator.generate_article_pages()?,
         generator.generate_index_page()?,
         generator.generate_articles_page()?,
+        generator.generate_independent_pages(),
         spawn_copy_all(Path::new("public"), Path::new(EXPORT_DIR))
     )?;
 
     match results {
-        (Err(error), _, _, _, _, _, _, _) => return Err(error),
-        (_, Err(error), _, _, _, _, _, _) => return Err(error),
-        (_, _, Err(error), _, _, _, _, _) => return Err(error),
-        (_, _, _, Err(error), _, _, _, _) => return Err(error),
-        (_, _, _, _, Err(error), _, _, _) => return Err(error),
-        (_, _, _, _, _, Err(error), _, _) => return Err(error),
-        (_, _, _, _, _, _, Err(error), _) => return Err(error),
-        (_, _, _, _, _, _, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _, _, _, _, _, _) => return Err(error),
+        (_, Err(error), _, _, _, _, _, _, _) => return Err(error),
+        (_, _, Err(error), _, _, _, _, _, _) => return Err(error),
+        (_, _, _, Err(error), _, _, _, _, _) => return Err(error),
+        (_, _, _, _, Err(error), _, _, _, _) => return Err(error),
+        (_, _, _, _, _, Err(error), _, _, _) => return Err(error),
+        (_, _, _, _, _, _, Err(error), _, _) => return Err(error),
+        (_, _, _, _, _, _, _, Err(error), _) => return Err(error),
+        (_, _, _, _, _, _, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     generator
