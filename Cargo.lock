@@ -221,6 +221,7 @@ dependencies = [
  "notion-generator",
  "reqwest",
  "serde",
+ "serde_json",
  "time",
  "tokio",
  "tokio-stream",

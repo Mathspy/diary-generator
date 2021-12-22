@@ -48,6 +48,20 @@ impl Title for Properties {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(default)]
+struct Config {
+    name: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            name: "Diary".to_string(),
+        }
+    }
+}
+
 fn render_article_time(date: Date) -> Result<Markup> {
     const HTML_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
     const READABLE_DATE: &[FormatItem<'_>] = format_description!("[month repr:long] [day], [year]");
@@ -124,6 +138,7 @@ struct Generator {
     head: Markup,
     header: Markup,
     footer: Markup,
+    config: Config,
 }
 
 impl Generator {
@@ -181,14 +196,31 @@ impl Generator {
 
         let today = time::OffsetDateTime::now_utc().date();
 
-        let (head, header, footer) = tokio::try_join!(
+        let read_config_file = async {
+            tokio::fs::File::open("config.json")
+                .await
+                .map(Some)
+                .or_else(|error| match error.kind() {
+                    io::ErrorKind::NotFound => Ok(None),
+                    _ => Err(error),
+                })
+                .context("Failed to read config.json file")
+        };
+
+        let (head, header, footer, config_file) = tokio::try_join!(
             read_partial_file("head.html"),
             read_partial_file("header.html"),
             read_partial_file("footer.html"),
+            read_config_file,
         )?;
         let head = PreEscaped(head);
         let header = PreEscaped(header);
         let footer = PreEscaped(footer);
+        let config = match config_file {
+            Some(file) => serde_json::from_reader::<_, Config>(file.into_std().await)
+                .context("Failed to parse config.json")?,
+            None => Default::default(),
+        };
 
         let downloadables = Downloadables::new();
 
@@ -201,6 +233,7 @@ impl Generator {
             head,
             header,
             footer,
+            config,
         })
     }
 
