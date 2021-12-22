@@ -117,7 +117,7 @@ fn format_day(date: Date) -> String {
 struct Generator {
     link_map: HashMap<NotionId, String>,
     lookup_tree: BTreeMap<Date, Page<Properties>>,
-    independent_pages: Vec<(String, Page<Properties>)>,
+    article_pages: Vec<(String, Page<Properties>)>,
     downloadables: Downloadables,
     today: Date,
     head: Markup,
@@ -129,7 +129,7 @@ impl Generator {
     async fn new(pages: Vec<Page<Properties>>) -> Result<Generator> {
         let length = pages.len();
 
-        let (link_map, lookup_tree, independent_pages) = pages
+        let (link_map, lookup_tree, article_pages) = pages
             .into_iter()
             .map(|page| {
                 let date = page
@@ -161,7 +161,7 @@ impl Generator {
             .fold::<Result<_>, _>(
                 Ok((HashMap::with_capacity(length), BTreeMap::new(), Vec::new())),
                 |acc, result: Result<_>| {
-                    let (mut link_map, mut lookup_tree, mut independent_pages) = acc?;
+                    let (mut link_map, mut lookup_tree, mut article_pages) = acc?;
                     let (page, path, identifier) = result?;
 
                     link_map.insert(page.id, path);
@@ -170,11 +170,11 @@ impl Generator {
                             lookup_tree.insert(date, page);
                         }
                         Either::Right(url) => {
-                            independent_pages.push((url, page));
+                            article_pages.push((url, page));
                         }
                     };
 
-                    Ok((link_map, lookup_tree, independent_pages))
+                    Ok((link_map, lookup_tree, article_pages))
                 },
             )?;
 
@@ -195,7 +195,7 @@ impl Generator {
             downloadables,
             link_map,
             lookup_tree,
-            independent_pages,
+            article_pages,
             today,
             head,
             header,
@@ -570,9 +570,9 @@ impl Generator {
         Ok(tokio::spawn(write(path, markup.into_string())))
     }
 
-    fn generate_independents(&self) -> Result<JoinHandle<Result<()>>> {
-        let independents = self
-            .independent_pages
+    fn generate_article_pages(&self) -> Result<JoinHandle<Result<()>>> {
+        let articles = self
+            .article_pages
             .iter()
             .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(url, page)| {
@@ -632,7 +632,7 @@ impl Generator {
             .map_ok(Self::write_if_not_empty)
             .collect::<Result<FuturesUnordered<_>>>()?;
 
-        Ok(tokio::spawn(independents.try_collect::<()>()))
+        Ok(tokio::spawn(articles.try_collect::<()>()))
     }
 
     fn generate_articles_page(&self) -> Result<JoinHandle<Result<()>>> {
@@ -643,7 +643,7 @@ impl Generator {
             downloadables: &self.downloadables,
         };
 
-        let articles = self.independent_pages.iter().filter_map(|(url, page)| {
+        let articles = self.article_pages.iter().filter_map(|(url, page)| {
             let published_date = page.properties.published.date.as_ref().map(get_date);
 
             let published_date = match published_date {
@@ -830,7 +830,7 @@ async fn main() -> Result<()> {
         generator.generate_years(first_date, last_date)?,
         generator.generate_months(first_date, last_date)?,
         generator.generate_days()?,
-        generator.generate_independents()?,
+        generator.generate_article_pages()?,
         generator.generate_index_page()?,
         generator.generate_articles_page()?,
         spawn_copy_all(Path::new("public"), Path::new(EXPORT_DIR))
