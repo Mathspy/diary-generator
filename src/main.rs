@@ -52,12 +52,14 @@ impl Title for Properties {
 #[serde(default)]
 struct Config {
     name: String,
+    description: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
             name: "Diary".to_string(),
+            description: "A neat diary".to_string(),
         }
     }
 }
@@ -571,9 +573,7 @@ impl Generator {
                 head {
                     meta charset="utf-8";
                     meta name="viewport" content="width=device-width, initial-scale=1";
-                    // @if description.len() != 0 {
-                    //     meta name="description" content=(description);
-                    // }
+                    meta name="description" content=(self.config.description);
                     link rel="stylesheet" href="/katex/katex.min.css";
                     title { (self.config.name) }
 
