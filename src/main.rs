@@ -48,7 +48,7 @@ impl Title for Properties {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(default)]
 struct Config {
     name: String,
@@ -302,7 +302,7 @@ impl Generator {
                             meta name="viewport" content="width=device-width, initial-scale=1";
                             link rel="stylesheet" href="/katex/katex.min.css";
 
-                            title { (year) }
+                            title { (year) " - " (self.config.name) }
 
                             (self.head)
                         }
@@ -376,7 +376,9 @@ impl Generator {
                             meta name="viewport" content="width=device-width, initial-scale=1";
                             link rel="stylesheet" href="/katex/katex.min.css";
 
-                            title { (format!("{} {}", month, year)) }
+                            title {
+                                (format!("{} {}", month, year)) " - " (self.config.name)
+                            }
 
                             (self.head)
                         }
@@ -439,8 +441,7 @@ impl Generator {
                                 meta name="description" content=(description);
                             }
                             link rel="stylesheet" href="/katex/katex.min.css";
-                            // TODO: Add `- Game Dev Diary` after each title
-                            title { (title) }
+                            title { (title) " - " (self.config.name) }
 
                             meta property="og:title" content=(title);
                             // TODO: Rest of OG meta properties
@@ -574,10 +575,9 @@ impl Generator {
                     //     meta name="description" content=(description);
                     // }
                     link rel="stylesheet" href="/katex/katex.min.css";
-                    // TODO: Add `- Game Dev Diary` after each title
-                    title { "Diary" }
+                    title { (self.config.name) }
 
-                    meta property="og:title" content="Diary";
+                    meta property="og:title" content=(self.config.name);
                     // TODO: Rest of OG meta properties
 
                     (self.head)
@@ -637,8 +637,7 @@ impl Generator {
                                 meta name="description" content=(description);
                             }
                             link rel="stylesheet" href="/katex/katex.min.css";
-                            // TODO: Add `- Game Dev Diary` after each title
-                            title { (title) }
+                            title { (title) " - " (self.config.name) }
 
                             meta property="og:title" content=(title);
                             // TODO: Rest of OG meta properties
@@ -712,10 +711,9 @@ impl Generator {
                     //     meta name="description" content=(description);
                     // }
                     link rel="stylesheet" href="/katex/katex.min.css";
-                    // TODO: Add `- Game Dev Diary` after each title
-                    title { "Articles - Diary" }
+                    title { "Articles - " (self.config.name) }
 
-                    meta property="og:title" content="Articles - Diary";
+                    meta property="og:title" content="Articles";
                     // TODO: Rest of OG meta properties
 
                     (self.head)
@@ -751,6 +749,7 @@ impl Generator {
         let head = self.head.clone();
         let header = self.header.clone();
         let footer = self.footer.clone();
+        let config = self.config.clone();
 
         tokio::spawn(async move {
             let files = ReadDirStream::new(tokio::fs::read_dir("pages").await?);
@@ -760,6 +759,7 @@ impl Generator {
             let head_ref = &head;
             let header_ref = &header;
             let footer_ref = &footer;
+            let config_ref = &config;
 
             files
                 .map(|result| {
@@ -794,8 +794,7 @@ impl Generator {
                             head {
                                 meta charset="utf-8";
                                 meta name="viewport" content="width=device-width, initial-scale=1";
-                                // TODO: Add `- Game Dev Diary` after each title
-                                title { (file_name) " - Diary" }
+                                title { (file_name) " - " (config_ref.name) }
 
                                 (*head_ref)
                             }
