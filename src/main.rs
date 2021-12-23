@@ -360,6 +360,8 @@ impl Generator {
                     .into_iter()
                     .map(|page| (page, renderer.render_blocks(&page.children, None, 1)));
 
+                let title = format!("{} - {}", year, self.config.name);
+
                 let markup = html! {
                     (DOCTYPE)
                     html lang="en" {
@@ -367,8 +369,9 @@ impl Generator {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
                             link rel="stylesheet" href="/katex/katex.min.css";
+                            title { (title) }
 
-                            title { (year) " - " (self.config.name) }
+                            meta property="og:title" content=(title);
 
                             (self.head)
                         }
@@ -434,6 +437,8 @@ impl Generator {
                     .into_iter()
                     .map(|page| (page, renderer.render_blocks(&page.children, None, 1)));
 
+                let title = format!("{} {} - {}", month, year, self.config.name);
+
                 let markup = html! {
                     (DOCTYPE)
                     html lang="en" {
@@ -441,10 +446,9 @@ impl Generator {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
                             link rel="stylesheet" href="/katex/katex.min.css";
+                            title { (title) }
 
-                            title {
-                                (format!("{} {}", month, year)) " - " (self.config.name)
-                            }
+                            meta property="og:title" content=(title);
 
                             (self.head)
                         }
@@ -489,7 +493,11 @@ impl Generator {
 
                 let blocks = renderer.render_blocks(&page.children, None, 1);
 
-                let title = page.properties.title().plain_text();
+                let title = format!(
+                    "{} - {}",
+                    page.properties.title().plain_text(),
+                    self.config.name
+                );
                 let description = page
                     .properties
                     .description
@@ -519,7 +527,7 @@ impl Generator {
                                 meta name="description" content=(description);
                             }
                             link rel="stylesheet" href="/katex/katex.min.css";
-                            title { (title) " - " (self.config.name) }
+                            title { (title) }
 
                             meta property="og:title" content=(title);
                             @if let Some(cover) = cover {
@@ -702,7 +710,11 @@ impl Generator {
 
                 let blocks = renderer.render_blocks(&page.children, None, 1);
 
-                let title = page.properties.title().plain_text();
+                let title = format!(
+                    "{} - {}",
+                    page.properties.title().plain_text(),
+                    self.config.name
+                );
                 let description = page
                     .properties
                     .description
@@ -722,7 +734,7 @@ impl Generator {
                                 meta name="description" content=(description);
                             }
                             link rel="stylesheet" href="/katex/katex.min.css";
-                            title { (title) " - " (self.config.name) }
+                            title { (title) }
 
                             meta property="og:title" content=(title);
                             @if let Some(cover) = cover {
@@ -789,6 +801,8 @@ impl Generator {
             })
         });
 
+        let title = format!("Articles - {}", self.config.name);
+
         let markup = html! {
             (DOCTYPE)
             html lang="en" {
@@ -799,9 +813,9 @@ impl Generator {
                     //     meta name="description" content=(description);
                     // }
                     link rel="stylesheet" href="/katex/katex.min.css";
-                    title { "Articles - " (self.config.name) }
+                    title { (title) }
 
-                    meta property="og:title" content="Articles";
+                    meta property="og:title" content=(title);
                     // TODO: Rest of OG meta properties
 
                     (self.head)
@@ -877,6 +891,7 @@ impl Generator {
                     if let Some(first_char) = title.get_mut(0..1) {
                         first_char.make_ascii_uppercase();
                     }
+                    let title = format!("{} - {}", title, config_ref.name);
 
                     let markup = html! {
                         (DOCTYPE)
@@ -884,7 +899,9 @@ impl Generator {
                             head {
                                 meta charset="utf-8";
                                 meta name="viewport" content="width=device-width, initial-scale=1";
-                                title { (title) " - " (config_ref.name) }
+                                title { (title) }
+
+                                meta property="og:title" content=(title);
 
                                 (*head_ref)
                             }
