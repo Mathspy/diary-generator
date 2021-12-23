@@ -372,6 +372,8 @@ impl Generator {
                             title { (title) }
 
                             meta property="og:title" content=(title);
+                            // TODO: What's a good description for years? Should we just say
+                            // something like "All entries for year 2021 from Diary"?
 
                             (self.head)
                         }
@@ -449,6 +451,8 @@ impl Generator {
                             title { (title) }
 
                             meta property="og:title" content=(title);
+                            // TODO: What's a good description for months? Should we just say
+                            // something like "All entries for Nov 2021 from Diary"?
 
                             (self.head)
                         }
@@ -523,13 +527,16 @@ impl Generator {
                         head {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
+                            link rel="stylesheet" href="/katex/katex.min.css";
+                            title { (title) }
                             @if !description.is_empty() {
                                 meta name="description" content=(description);
                             }
-                            link rel="stylesheet" href="/katex/katex.min.css";
-                            title { (title) }
 
                             meta property="og:title" content=(title);
+                            @if !description.is_empty() {
+                                meta property="og:description" content=(description);
+                            }
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
                             }
@@ -666,6 +673,7 @@ impl Generator {
                     title { (self.config.name) }
 
                     meta property="og:title" content=(self.config.name);
+                    meta property="og:description" content=(self.config.description);
                     @if let Some(cover) = &self.config.cover {
                         meta property="og:image" content=(cover);
                     }
@@ -730,13 +738,16 @@ impl Generator {
                         head {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
+                            link rel="stylesheet" href="/katex/katex.min.css";
+                            title { (title) }
                             @if !description.is_empty() {
                                 meta name="description" content=(description);
                             }
-                            link rel="stylesheet" href="/katex/katex.min.css";
-                            title { (title) }
 
                             meta property="og:title" content=(title);
+                            @if !description.is_empty() {
+                                meta property="og:description" content=(description);
+                            }
                             @if let Some(cover) = cover {
                                 meta name="og:image" content=(cover);
                             }
@@ -809,13 +820,11 @@ impl Generator {
                 head {
                     meta charset="utf-8";
                     meta name="viewport" content="width=device-width, initial-scale=1";
-                    // @if description.len() != 0 {
-                    //     meta name="description" content=(description);
-                    // }
                     link rel="stylesheet" href="/katex/katex.min.css";
                     title { (title) }
 
                     meta property="og:title" content=(title);
+                    // TODO: What's a good description for the articles page?
                     // TODO: Rest of OG meta properties
 
                     (self.head)
@@ -902,6 +911,8 @@ impl Generator {
                                 title { (title) }
 
                                 meta property="og:title" content=(title);
+                                // TODO: Should there be a mechanism to set the description
+                                // for independent pages?
 
                                 (*head_ref)
                             }
