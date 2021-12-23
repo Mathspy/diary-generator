@@ -311,12 +311,17 @@ impl Generator {
             .map(get_date)
             .or_else(|| page.properties.published.date.as_ref().map(get_date));
 
+        let cover = self.download_cover(page)?;
+
         Ok(html! {
             article {
                 header {
                     (renderer.render_heading(page.id, None, Heading::H1, page.properties.title()))
                     @if let Some(date) = date {
                         (render_article_time(date)?)
+                    }
+                    @if let Some(cover) = cover {
+                        img alt=(format!("{} cover", page.properties.title().plain_text())) src=(cover);
                     }
                 }
                 @for block in blocks {
