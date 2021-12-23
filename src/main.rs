@@ -23,7 +23,7 @@ use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     io,
-    ops::Not,
+    ops::{Bound, Not},
     path::{Path, PathBuf},
 };
 use time::{format_description::FormatItem, macros::format_description, Date, Month};
@@ -106,6 +106,57 @@ where
             }
             @for block in blocks {
                 (block?)
+            }
+        }
+    })
+}
+
+fn render_paging_links(
+    renderer: &HtmlRenderer,
+    current_date: Date,
+    prev_page: Option<(&Date, &Page<Properties>)>,
+    next_page: Option<(&Date, &Page<Properties>)>,
+) -> Result<Markup> {
+    if next_page.is_none() && prev_page.is_none() {
+        return Ok(PreEscaped(String::new()));
+    }
+
+    Ok(html! {
+        nav class="paging-links" {
+            @if let Some((&prev_date, prev_page)) = prev_page {
+                a href=(format_day(prev_date, true)) {
+                    article {
+                        p {
+                            @if prev_date.next_day() == Some(current_date) {
+                                "Yesterday:"
+                            } @else {
+                                "Previously:"
+                            }
+                        }
+                        header {
+                            h3 { (renderer.render_rich_text(&prev_page.properties.name.title)) }
+                            (render_article_time(prev_date)?)
+                        }
+                    }
+                }
+            }
+
+            @if let Some((&next_date, next_page)) = next_page {
+                a href=(format_day(next_date, true)) {
+                    article {
+                        p {
+                            @if next_date.previous_day() == Some(current_date) {
+                                "Tomorrow:"
+                            } @else {
+                                "Next up:"
+                            }
+                        }
+                        header {
+                            h3 { (renderer.render_rich_text(&next_page.properties.name.title)) }
+                            (render_article_time(next_date)?)
+                        }
+                    }
+                }
             }
         }
     })
@@ -434,6 +485,16 @@ impl Generator {
                     .as_slice()
                     .plain_text();
 
+                let prev_page = self
+                    .lookup_tree
+                    .range((Bound::Unbounded, Bound::Excluded(date)))
+                    .rev()
+                    .find(|(_, page)| self.filter_unpublished(page));
+                let next_page = self
+                    .lookup_tree
+                    .range((Bound::Excluded(date), Bound::Unbounded))
+                    .find(|(_, page)| self.filter_unpublished(page));
+
                 let markup = html! {
                     (DOCTYPE)
                     html lang="en" {
@@ -457,6 +518,7 @@ impl Generator {
                             }
                             main {
                                 (render_article(&renderer, page, blocks)?)
+                                (render_paging_links(&renderer, *date, prev_page, next_page)?)
                             }
                             footer {
                                 (self.footer)
