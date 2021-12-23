@@ -53,6 +53,7 @@ impl Title for Properties {
 struct Config {
     name: String,
     description: String,
+    cover: Option<String>,
 }
 
 impl Default for Config {
@@ -60,6 +61,7 @@ impl Default for Config {
         Config {
             name: "Diary".to_string(),
             description: "A neat diary".to_string(),
+            cover: None,
         }
     }
 }
@@ -641,6 +643,9 @@ impl Generator {
                     title { (self.config.name) }
 
                     meta property="og:title" content=(self.config.name);
+                    @if let Some(cover) = &self.config.cover {
+                        meta property="og:image" content=(cover);
+                    }
                     // TODO: Rest of OG meta properties
 
                     (self.head)
