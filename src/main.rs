@@ -48,6 +48,22 @@ impl Title for Properties {
     }
 }
 
+mod deserializers {
+    use reqwest::Url;
+    use serde::{
+        de::{Deserializer, Error},
+        Deserialize,
+    };
+
+    pub fn url<'a, D: Deserializer<'a>>(deserializer: D) -> Result<Option<Url>, D::Error> {
+        Option::<String>::deserialize(deserializer)?
+            .as_deref()
+            .map(Url::parse)
+            .transpose()
+            .map_err(|error| D::Error::custom(error.to_string()))
+    }
+}
+
 #[derive(Clone, Deserialize)]
 #[serde(default)]
 struct Config {
@@ -55,6 +71,8 @@ struct Config {
     description: String,
     cover: Option<String>,
     locale: String,
+    #[serde(deserialize_with = "deserializers::url")]
+    url: Option<reqwest::Url>,
 }
 
 impl Default for Config {
@@ -64,6 +82,7 @@ impl Default for Config {
             description: "A neat diary".to_string(),
             cover: None,
             locale: "en_US".to_string(),
+            url: None,
         }
     }
 }
@@ -363,6 +382,7 @@ impl Generator {
                     .map(|page| (page, renderer.render_blocks(&page.children, None, 1)));
 
                 let title = format!("{} - {}", year, self.config.name);
+                let path = format_year(year);
 
                 let markup = html! {
                     (DOCTYPE)
@@ -379,6 +399,9 @@ impl Generator {
                             meta property="og:locale" content=(self.config.locale);
                             // TODO: Should we use the first cover in the year as an image?
                             // Would be cool to generate some custom covers here
+                            @if let Some(url) = &self.config.url {
+                                meta property="og:url" content=(url.join(&path)?);
+                            }
 
                             (self.head)
                         }
@@ -398,7 +421,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(format_year(year));
+                let mut path = Path::new(EXPORT_DIR).join(path);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -445,6 +468,7 @@ impl Generator {
                     .map(|page| (page, renderer.render_blocks(&page.children, None, 1)));
 
                 let title = format!("{} {} - {}", month, year, self.config.name);
+                let path = format_month(year, month);
 
                 let markup = html! {
                     (DOCTYPE)
@@ -461,6 +485,9 @@ impl Generator {
                             meta property="og:locale" content=(self.config.locale);
                             // TODO: Should we use the first cover in the months as an image?
                             // Would be cool to generate some custom covers here
+                            @if let Some(url) = &self.config.url {
+                                meta property="og:url" content=(url.join(&path)?);
+                            }
 
                             (self.head)
                         }
@@ -480,7 +507,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(format_month(year, month));
+                let mut path = Path::new(EXPORT_DIR).join(path);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -528,6 +555,7 @@ impl Generator {
                     .find(|(_, page)| self.filter_unpublished(page));
 
                 let cover = self.download_cover(page)?;
+                let path = format_day(*date, false);
 
                 let markup = html! {
                     (DOCTYPE)
@@ -550,6 +578,9 @@ impl Generator {
                                 meta property="og:image" content=(cover);
                                 meta name="twitter:card" content="summary_large_image";
                             }
+                            @if let Some(url) = &self.config.url {
+                                meta property="og:url" content=(url.join(&path)?);
+                            }
                             // TODO: Rest of OG meta properties
 
                             (self.head)
@@ -569,7 +600,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(format_day(*date, false));
+                let mut path = Path::new(EXPORT_DIR).join(path);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -689,6 +720,9 @@ impl Generator {
                         meta property="og:image" content=(cover);
                         meta name="twitter:card" content="summary_large_image";
                     }
+                    @if let Some(url) = &self.config.url {
+                        meta property="og:url" content=(url);
+                    }
                     // TODO: Rest of OG meta properties
 
                     (self.head)
@@ -764,6 +798,9 @@ impl Generator {
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
                                 meta name="twitter:card" content="summary_large_image";
+                            }
+                            @if let Some(site_url) = &self.config.url {
+                                meta property="og:url" content=(site_url.join(url)?);
                             }
                             // TODO: Rest of OG meta properties
 
@@ -842,6 +879,9 @@ impl Generator {
                     // TODO: Rest of OG meta properties
                     meta property="og:locale" content=(self.config.locale);
                     // TODO: One could generate a custom image for this page once
+                    @if let Some(url) = &self.config.url {
+                        meta property="og:url" content=(url.join("articles")?);
+                    }
 
                     (self.head)
                 }
@@ -910,9 +950,17 @@ impl Generator {
 
                     let content = tokio::fs::read_to_string(entry.path()).await?;
 
-                    let output_path = Path::new(EXPORT_DIR).join(&file_name);
+                    // We want the file without extension to use it both as a title and for links
+                    // since links go to /file not /file.html
+                    let mut file_without_ext = entry.path();
+                    file_without_ext.set_extension("");
+                    let path = file_without_ext
+                        .into_os_string()
+                        .into_string()
+                        .map_err(|_| anyhow::anyhow!("Unreachable checked above"))?;
 
-                    let mut title = file_name;
+                    // For title we want the first letter to be uppercase
+                    let mut title = path.clone();
                     if let Some(first_char) = title.get_mut(0..1) {
                         first_char.make_ascii_uppercase();
                     }
@@ -931,6 +979,9 @@ impl Generator {
                                 // for independent pages?
                                 meta property="og:locale" content=(config_ref.locale);
                                 // TODO: Same as description but for images
+                                @if let Some(url) = &config_ref.url {
+                                    meta property="og:url" content=(url.join(&path)?);
+                                }
 
                                 (*head_ref)
                             }
@@ -946,7 +997,7 @@ impl Generator {
                         }
                     };
 
-                    write(output_path, markup.into_string()).await
+                    write(Path::new(EXPORT_DIR).join(path), markup.into_string()).await
                 })
                 .try_collect::<()>()
                 .await
