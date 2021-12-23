@@ -122,9 +122,10 @@ fn format_month(year: i32, month: Month) -> String {
 }
 
 #[inline]
-fn format_day(date: Date) -> String {
+fn format_day(date: Date, is_link: bool) -> String {
     format!(
-        "{:0>4}/{:0>2}/{:0>2}",
+        "{}{:0>4}/{:0>2}/{:0>2}",
+        if is_link { "/" } else { "" },
         date.year(),
         u8::from(date.month()),
         date.day()
@@ -168,7 +169,7 @@ impl Generator {
                     (Some(Either::Left(date)), Some(url)) => bail!("Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}", page.id, date, url),
                     (None, None) => bail!("Diary pages must have either a date or a URL"),
                     (Some(Either::Left(date)), None) => (
-                        date.format(format_description!("/[year]/[month]/[day]"))?,
+                        format_day(date, true),
                         Either::Left(date),
                     ),
                     (None, Some(url)) => (format!("/{}", url), Either::Right(url)),
@@ -464,7 +465,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(format_day(*date));
+                let mut path = Path::new(EXPORT_DIR).join(format_day(*date, false));
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -502,7 +503,7 @@ impl Generator {
                     article {
                         header {
                             h3 {
-                                a href=(format_day(date)) {
+                                a href=(format_day(date, true)) {
                                     (renderer.render_rich_text(page.properties.title()))
                                 }
                             }
