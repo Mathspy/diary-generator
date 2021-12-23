@@ -86,33 +86,6 @@ fn get_date(date: &NotionDate) -> Date {
     }
 }
 
-fn render_article<I>(renderer: &HtmlRenderer, page: &Page<Properties>, blocks: I) -> Result<Markup>
-where
-    I: Iterator<Item = Result<Markup>>,
-{
-    let date = page
-        .properties
-        .date
-        .date
-        .as_ref()
-        .map(get_date)
-        .or_else(|| page.properties.published.date.as_ref().map(get_date));
-
-    Ok(html! {
-        article {
-            header {
-                (renderer.render_heading(page.id, None, Heading::H1, page.properties.title()))
-                @if let Some(date) = date {
-                    (render_article_time(date)?)
-                }
-            }
-            @for block in blocks {
-                (block?)
-            }
-        }
-    })
-}
-
 fn render_paging_links(
     renderer: &HtmlRenderer,
     current_date: Date,
@@ -321,6 +294,38 @@ impl Generator {
             .unwrap_or(false)
     }
 
+    fn render_article<I>(
+        &self,
+        renderer: &HtmlRenderer,
+        page: &Page<Properties>,
+        blocks: I,
+    ) -> Result<Markup>
+    where
+        I: Iterator<Item = Result<Markup>>,
+    {
+        let date = page
+            .properties
+            .date
+            .date
+            .as_ref()
+            .map(get_date)
+            .or_else(|| page.properties.published.date.as_ref().map(get_date));
+
+        Ok(html! {
+            article {
+                header {
+                    (renderer.render_heading(page.id, None, Heading::H1, page.properties.title()))
+                    @if let Some(date) = date {
+                        (render_article_time(date)?)
+                    }
+                }
+                @for block in blocks {
+                    (block?)
+                }
+            }
+        })
+    }
+
     fn generate_years(&self, first_date: Date, last_date: Date) -> Result<JoinHandle<Result<()>>> {
         let years = (first_date.year()..=last_date.year())
             .map(|year| {
@@ -368,7 +373,7 @@ impl Generator {
                             }
                             main {
                                 @for (page, blocks) in rendered_pages {
-                                    (render_article(&renderer, page, blocks)?)
+                                    (self.render_article(&renderer, page, blocks)?)
                                 }
                             }
                             footer {
@@ -444,7 +449,7 @@ impl Generator {
                             }
                             main {
                                 @for (page, blocks) in rendered_pages {
-                                    (render_article(&renderer, page, blocks)?)
+                                    (self.render_article(&renderer, page, blocks)?)
                                 }
                             }
                             footer {
@@ -524,7 +529,7 @@ impl Generator {
                                 (self.header)
                             }
                             main {
-                                (render_article(&renderer, page, blocks)?)
+                                (self.render_article(&renderer, page, blocks)?)
                                 (render_paging_links(&renderer, *date, prev_page, next_page)?)
                             }
                             footer {
@@ -727,7 +732,7 @@ impl Generator {
                                 (self.header)
                             }
                             main {
-                                (render_article(&renderer, page, blocks)?)
+                                (self.render_article(&renderer, page, blocks)?)
                             }
                             footer {
                                 (self.footer)
