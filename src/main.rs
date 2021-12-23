@@ -497,6 +497,8 @@ impl Generator {
                     .range((Bound::Excluded(date), Bound::Unbounded))
                     .find(|(_, page)| self.filter_unpublished(page));
 
+                let cover = self.download_cover(page)?;
+
                 let markup = html! {
                     (DOCTYPE)
                     html lang="en" {
@@ -510,6 +512,9 @@ impl Generator {
                             title { (title) " - " (self.config.name) }
 
                             meta property="og:title" content=(title);
+                            @if let Some(cover) = cover {
+                                meta property="og:image" content=(cover);
+                            }
                             // TODO: Rest of OG meta properties
 
                             (self.head)
@@ -695,6 +700,8 @@ impl Generator {
                     .as_slice()
                     .plain_text();
 
+                let cover = self.download_cover(page)?;
+
                 let markup = html! {
                     (DOCTYPE)
                     html lang="en" {
@@ -708,6 +715,9 @@ impl Generator {
                             title { (title) " - " (self.config.name) }
 
                             meta property="og:title" content=(title);
+                            @if let Some(cover) = cover {
+                                meta name="og:image" content=(cover);
+                            }
                             // TODO: Rest of OG meta properties
 
                             (self.head)
