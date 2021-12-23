@@ -548,6 +548,7 @@ impl Generator {
                             meta property="og:locale" content=(self.config.locale);
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
+                                meta name="twitter:card" content="summary_large_image";
                             }
                             // TODO: Rest of OG meta properties
 
@@ -686,6 +687,7 @@ impl Generator {
                     meta property="og:locale" content=(self.config.locale);
                     @if let Some(cover) = &self.config.cover {
                         meta property="og:image" content=(cover);
+                        meta name="twitter:card" content="summary_large_image";
                     }
                     // TODO: Rest of OG meta properties
 
@@ -761,6 +763,7 @@ impl Generator {
                             meta property="og:locale" content=(self.config.locale);
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
+                                meta name="twitter:card" content="summary_large_image";
                             }
                             // TODO: Rest of OG meta properties
 
