@@ -886,6 +886,24 @@ impl Generator {
                 .await
         })
     }
+
+    fn download_cover(&self, page: &Page<Properties>) -> Result<Option<String>> {
+        let cover = page
+            .cover
+            .as_ref()
+            // Even though a page's cover doesn't have a unique id, since we know nothing else
+            // will use that id as media we will give it to the cover
+            .map(|file| file.as_downloadable(page.id))
+            .transpose()?;
+
+        let src = cover.as_ref().map(|downloadable| downloadable.src_path());
+
+        if let Some(cover) = cover {
+            self.downloadables.insert(cover);
+        }
+
+        Ok(src)
+    }
 }
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
