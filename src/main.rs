@@ -54,6 +54,7 @@ struct Config {
     name: String,
     description: String,
     cover: Option<String>,
+    locale: String,
 }
 
 impl Default for Config {
@@ -62,6 +63,7 @@ impl Default for Config {
             name: "Diary".to_string(),
             description: "A neat diary".to_string(),
             cover: None,
+            locale: "en_US".to_string(),
         }
     }
 }
@@ -374,6 +376,7 @@ impl Generator {
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for years? Should we just say
                             // something like "All entries for year 2021 from Diary"?
+                            meta property="og:locale" content=(self.config.locale);
 
                             (self.head)
                         }
@@ -453,6 +456,7 @@ impl Generator {
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for months? Should we just say
                             // something like "All entries for Nov 2021 from Diary"?
+                            meta property="og:locale" content=(self.config.locale);
 
                             (self.head)
                         }
@@ -537,6 +541,7 @@ impl Generator {
                             @if !description.is_empty() {
                                 meta property="og:description" content=(description);
                             }
+                            meta property="og:locale" content=(self.config.locale);
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
                             }
@@ -674,6 +679,7 @@ impl Generator {
 
                     meta property="og:title" content=(self.config.name);
                     meta property="og:description" content=(self.config.description);
+                    meta property="og:locale" content=(self.config.locale);
                     @if let Some(cover) = &self.config.cover {
                         meta property="og:image" content=(cover);
                     }
@@ -748,6 +754,7 @@ impl Generator {
                             @if !description.is_empty() {
                                 meta property="og:description" content=(description);
                             }
+                            meta property="og:locale" content=(self.config.locale);
                             @if let Some(cover) = cover {
                                 meta name="og:image" content=(cover);
                             }
@@ -826,6 +833,7 @@ impl Generator {
                     meta property="og:title" content=(title);
                     // TODO: What's a good description for the articles page?
                     // TODO: Rest of OG meta properties
+                    meta property="og:locale" content=(self.config.locale);
 
                     (self.head)
                 }
@@ -913,6 +921,7 @@ impl Generator {
                                 meta property="og:title" content=(title);
                                 // TODO: Should there be a mechanism to set the description
                                 // for independent pages?
+                                meta property="og:locale" content=(config_ref.locale);
 
                                 (*head_ref)
                             }
