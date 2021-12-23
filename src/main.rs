@@ -377,6 +377,8 @@ impl Generator {
                             // TODO: What's a good description for years? Should we just say
                             // something like "All entries for year 2021 from Diary"?
                             meta property="og:locale" content=(self.config.locale);
+                            // TODO: Should we use the first cover in the year as an image?
+                            // Would be cool to generate some custom covers here
 
                             (self.head)
                         }
@@ -457,6 +459,8 @@ impl Generator {
                             // TODO: What's a good description for months? Should we just say
                             // something like "All entries for Nov 2021 from Diary"?
                             meta property="og:locale" content=(self.config.locale);
+                            // TODO: Should we use the first cover in the months as an image?
+                            // Would be cool to generate some custom covers here
 
                             (self.head)
                         }
@@ -756,7 +760,7 @@ impl Generator {
                             }
                             meta property="og:locale" content=(self.config.locale);
                             @if let Some(cover) = cover {
-                                meta name="og:image" content=(cover);
+                                meta property="og:image" content=(cover);
                             }
                             // TODO: Rest of OG meta properties
 
@@ -834,6 +838,7 @@ impl Generator {
                     // TODO: What's a good description for the articles page?
                     // TODO: Rest of OG meta properties
                     meta property="og:locale" content=(self.config.locale);
+                    // TODO: One could generate a custom image for this page once
 
                     (self.head)
                 }
@@ -922,6 +927,7 @@ impl Generator {
                                 // TODO: Should there be a mechanism to set the description
                                 // for independent pages?
                                 meta property="og:locale" content=(config_ref.locale);
+                                // TODO: Same as description but for images
 
                                 (*head_ref)
                             }
