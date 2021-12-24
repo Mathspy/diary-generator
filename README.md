@@ -32,11 +32,32 @@ The difference between these pages and pages in Notion with `url` is that these 
 If you create a `public/` directory in the folder where you handle generation all its content will be copied over to `output/`
 
 ### `config.json` for configuring your diary
-You can also include a `config.json` directory in the directory to modify the behavior of the generator. Currently supported fields are:
+You can also include a `config.json` file in the directory to modify the behavior of the generator. Currently supported fields are:
 ```js
 {
   // The name of your diary which will automatically be used in page titles
-  "name": String
+  "name": String,
+  // The description to use for home page
+  "description": String,
+  // If present will be used for <meta name="author"> in all pages
+  "author": String | null,
+  // If present will be used for as thumbnail for home page using <meta property="og:image">
+  // Should be the relative or absolute path to an image, preferably of size 1200x630
+  "cover": String | null,
+  // The locale of the site following the format `language_TERRITORY` (i.e en_US)
+  "locale": String,
+  // The URL where the website will be deployed.
+  // Used to construct correct <meta property="og:url"> if present
+  "url": String | null,
+  // Settings for twitter robot
+  "twitter": {
+    // The Twitter tag for this site if one exists (i.e: @MyCoolDiary)
+    // Corresponds to <meta name="twitter:site">
+    "site": String | null,
+    // The Twitter tag for this site's creator if one exists (i.e: @Mathspy)
+    // Corresponds to <meta name="twitter:creator">
+    "creator": String | null,
+  }
 }
 ```
 
