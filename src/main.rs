@@ -73,6 +73,13 @@ struct Config {
     locale: String,
     #[serde(deserialize_with = "deserializers::url")]
     url: Option<reqwest::Url>,
+    twitter: TwitterConfig,
+}
+
+#[derive(Clone, Deserialize)]
+struct TwitterConfig {
+    site: Option<String>,
+    creator: Option<String>,
 }
 
 impl Default for Config {
@@ -83,6 +90,10 @@ impl Default for Config {
             cover: None,
             locale: "en_US".to_string(),
             url: None,
+            twitter: TwitterConfig {
+                site: None,
+                creator: None,
+            },
         }
     }
 }
@@ -402,6 +413,12 @@ impl Generator {
                             @if let Some(url) = &self.config.url {
                                 meta property="og:url" content=(url.join(&path)?);
                             }
+                            @if let Some(twitter_site) = &self.config.twitter.site {
+                                meta name="twitter:site" content=(twitter_site);
+                            }
+                            @if let Some(twitter_creator) = &self.config.twitter.creator {
+                                meta name="twitter:creator" content=(twitter_creator);
+                            }
 
                             (self.head)
                         }
@@ -487,6 +504,12 @@ impl Generator {
                             // Would be cool to generate some custom covers here
                             @if let Some(url) = &self.config.url {
                                 meta property="og:url" content=(url.join(&path)?);
+                            }
+                            @if let Some(twitter_site) = &self.config.twitter.site {
+                                meta name="twitter:site" content=(twitter_site);
+                            }
+                            @if let Some(twitter_creator) = &self.config.twitter.creator {
+                                meta name="twitter:creator" content=(twitter_creator);
                             }
 
                             (self.head)
@@ -580,6 +603,12 @@ impl Generator {
                             }
                             @if let Some(url) = &self.config.url {
                                 meta property="og:url" content=(url.join(&path)?);
+                            }
+                            @if let Some(twitter_site) = &self.config.twitter.site {
+                                meta name="twitter:site" content=(twitter_site);
+                            }
+                            @if let Some(twitter_creator) = &self.config.twitter.creator {
+                                meta name="twitter:creator" content=(twitter_creator);
                             }
                             // TODO: Rest of OG meta properties
 
@@ -723,6 +752,12 @@ impl Generator {
                     @if let Some(url) = &self.config.url {
                         meta property="og:url" content=(url);
                     }
+                    @if let Some(twitter_site) = &self.config.twitter.site {
+                        meta name="twitter:site" content=(twitter_site);
+                    }
+                    @if let Some(twitter_creator) = &self.config.twitter.creator {
+                        meta name="twitter:creator" content=(twitter_creator);
+                    }
                     // TODO: Rest of OG meta properties
 
                     (self.head)
@@ -801,6 +836,12 @@ impl Generator {
                             }
                             @if let Some(site_url) = &self.config.url {
                                 meta property="og:url" content=(site_url.join(url)?);
+                            }
+                            @if let Some(twitter_site) = &self.config.twitter.site {
+                                meta name="twitter:site" content=(twitter_site);
+                            }
+                            @if let Some(twitter_creator) = &self.config.twitter.creator {
+                                meta name="twitter:creator" content=(twitter_creator);
                             }
                             // TODO: Rest of OG meta properties
 
@@ -881,6 +922,12 @@ impl Generator {
                     // TODO: One could generate a custom image for this page once
                     @if let Some(url) = &self.config.url {
                         meta property="og:url" content=(url.join("articles")?);
+                    }
+                    @if let Some(twitter_site) = &self.config.twitter.site {
+                        meta name="twitter:site" content=(twitter_site);
+                    }
+                    @if let Some(twitter_creator) = &self.config.twitter.creator {
+                        meta name="twitter:creator" content=(twitter_creator);
                     }
 
                     (self.head)
@@ -981,6 +1028,12 @@ impl Generator {
                                 // TODO: Same as description but for images
                                 @if let Some(url) = &config_ref.url {
                                     meta property="og:url" content=(url.join(&path)?);
+                                }
+                                @if let Some(twitter_site) = &config_ref.twitter.site {
+                                    meta name="twitter:site" content=(twitter_site);
+                                }
+                                @if let Some(twitter_creator) = &config_ref.twitter.creator {
+                                    meta name="twitter:creator" content=(twitter_creator);
                                 }
 
                                 (*head_ref)
