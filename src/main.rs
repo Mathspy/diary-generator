@@ -49,9 +49,10 @@ impl Title for Properties {
 }
 
 mod deserializers {
+    use super::LocaleConfig;
     use reqwest::Url;
     use serde::{
-        de::{Deserializer, Error},
+        de::{Deserializer, Error, Unexpected},
         Deserialize,
     };
 
@@ -62,6 +63,24 @@ mod deserializers {
             .transpose()
             .map_err(|error| D::Error::custom(error.to_string()))
     }
+
+    pub(crate) fn locale<'a, D: Deserializer<'a>>(
+        deserializer: D,
+    ) -> Result<LocaleConfig, D::Error> {
+        let locale = String::deserialize(deserializer)?;
+        let mut locale_iter = locale.split('_');
+
+        match (locale_iter.next(), locale_iter.next()) {
+            (Some(lang), Some(_)) => Ok(LocaleConfig {
+                lang: lang.to_string(),
+                locale,
+            }),
+            _ => Err(D::Error::invalid_value(
+                Unexpected::Str(&locale),
+                &"a valid locale string",
+            )),
+        }
+    }
 }
 
 #[derive(Clone, Deserialize)]
@@ -71,10 +90,17 @@ struct Config {
     description: String,
     author: Option<String>,
     cover: Option<String>,
-    locale: String,
+    #[serde(deserialize_with = "deserializers::locale")]
+    locale: LocaleConfig,
     #[serde(deserialize_with = "deserializers::url")]
     url: Option<reqwest::Url>,
     twitter: TwitterConfig,
+}
+
+#[derive(Clone)]
+struct LocaleConfig {
+    locale: String,
+    lang: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -90,7 +116,10 @@ impl Default for Config {
             description: "A neat diary".to_string(),
             author: None,
             cover: None,
-            locale: "en_US".to_string(),
+            locale: LocaleConfig {
+                locale: "en_US".to_string(),
+                lang: "en".to_string(),
+            },
             url: None,
             twitter: TwitterConfig {
                 site: None,
@@ -399,7 +428,7 @@ impl Generator {
 
                 let markup = html! {
                     (DOCTYPE)
-                    html lang="en" {
+                    html lang=(self.config.locale.lang) {
                         head {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
@@ -412,7 +441,7 @@ impl Generator {
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for years? Should we just say
                             // something like "All entries for year 2021 from Diary"?
-                            meta property="og:locale" content=(self.config.locale);
+                            meta property="og:locale" content=(self.config.locale.locale);
                             // TODO: Should we use the first cover in the year as an image?
                             // Would be cool to generate some custom covers here
                             @if let Some(url) = &self.config.url {
@@ -494,7 +523,7 @@ impl Generator {
 
                 let markup = html! {
                     (DOCTYPE)
-                    html lang="en" {
+                    html lang=(self.config.locale.lang) {
                         head {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
@@ -507,7 +536,7 @@ impl Generator {
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for months? Should we just say
                             // something like "All entries for Nov 2021 from Diary"?
-                            meta property="og:locale" content=(self.config.locale);
+                            meta property="og:locale" content=(self.config.locale.locale);
                             // TODO: Should we use the first cover in the months as an image?
                             // Would be cool to generate some custom covers here
                             @if let Some(url) = &self.config.url {
@@ -590,7 +619,7 @@ impl Generator {
 
                 let markup = html! {
                     (DOCTYPE)
-                    html lang="en" {
+                    html lang=(self.config.locale.lang) {
                         head {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
@@ -607,7 +636,7 @@ impl Generator {
                             @if !description.is_empty() {
                                 meta property="og:description" content=(description);
                             }
-                            meta property="og:locale" content=(self.config.locale);
+                            meta property="og:locale" content=(self.config.locale.locale);
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
                                 meta name="twitter:card" content="summary_large_image";
@@ -745,7 +774,7 @@ impl Generator {
 
         let markup = html! {
             (DOCTYPE)
-            html lang="en" {
+            html lang=(self.config.locale.lang) {
                 head {
                     meta charset="utf-8";
                     meta name="viewport" content="width=device-width, initial-scale=1";
@@ -758,7 +787,7 @@ impl Generator {
 
                     meta property="og:title" content=(self.config.name);
                     meta property="og:description" content=(self.config.description);
-                    meta property="og:locale" content=(self.config.locale);
+                    meta property="og:locale" content=(self.config.locale.locale);
                     @if let Some(cover) = &self.config.cover {
                         meta property="og:image" content=(cover);
                         meta name="twitter:card" content="summary_large_image";
@@ -829,7 +858,7 @@ impl Generator {
 
                 let markup = html! {
                     (DOCTYPE)
-                    html lang="en" {
+                    html lang=(self.config.locale.lang) {
                         head {
                             meta charset="utf-8";
                             meta name="viewport" content="width=device-width, initial-scale=1";
@@ -846,7 +875,7 @@ impl Generator {
                             @if !description.is_empty() {
                                 meta property="og:description" content=(description);
                             }
-                            meta property="og:locale" content=(self.config.locale);
+                            meta property="og:locale" content=(self.config.locale.locale);
                             @if let Some(cover) = cover {
                                 meta property="og:image" content=(cover);
                                 meta name="twitter:card" content="summary_large_image";
@@ -925,7 +954,7 @@ impl Generator {
 
         let markup = html! {
             (DOCTYPE)
-            html lang="en" {
+            html lang=(self.config.locale.lang) {
                 head {
                     meta charset="utf-8";
                     meta name="viewport" content="width=device-width, initial-scale=1";
@@ -938,7 +967,7 @@ impl Generator {
                     meta property="og:title" content=(title);
                     // TODO: What's a good description for the articles page?
                     // TODO: Rest of OG meta properties
-                    meta property="og:locale" content=(self.config.locale);
+                    meta property="og:locale" content=(self.config.locale.locale);
                     // TODO: One could generate a custom image for this page once
                     @if let Some(url) = &self.config.url {
                         meta property="og:url" content=(url.join("articles")?);
@@ -1035,7 +1064,7 @@ impl Generator {
 
                     let markup = html! {
                         (DOCTYPE)
-                        html lang="en" {
+                        html lang=(config_ref.locale.lang) {
                             head {
                                 meta charset="utf-8";
                                 meta name="viewport" content="width=device-width, initial-scale=1";
@@ -1047,7 +1076,7 @@ impl Generator {
                                 meta property="og:title" content=(title);
                                 // TODO: Should there be a mechanism to set the description
                                 // for independent pages?
-                                meta property="og:locale" content=(config_ref.locale);
+                                meta property="og:locale" content=(config_ref.locale.locale);
                                 // TODO: Same as description but for images
                                 @if let Some(url) = &config_ref.url {
                                     meta property="og:url" content=(url.join(&path)?);
