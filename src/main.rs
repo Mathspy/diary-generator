@@ -29,6 +29,7 @@ use std::{
 use time::{format_description::FormatItem, macros::format_description, Date, Month};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReadDirStream;
+use tracing::info;
 use utils::spawn_copy_all;
 
 const EXPORT_DIR: &str = "output";
@@ -1135,6 +1136,7 @@ impl Generator {
 
 async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
     let path = path.as_ref();
+    info!(msg = "Writing file", path = %path.display());
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent)
             .await
