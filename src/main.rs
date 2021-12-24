@@ -69,6 +69,7 @@ mod deserializers {
 struct Config {
     name: String,
     description: String,
+    author: Option<String>,
     cover: Option<String>,
     locale: String,
     #[serde(deserialize_with = "deserializers::url")]
@@ -87,6 +88,7 @@ impl Default for Config {
         Config {
             name: "Diary".to_string(),
             description: "A neat diary".to_string(),
+            author: None,
             cover: None,
             locale: "en_US".to_string(),
             url: None,
@@ -403,6 +405,9 @@ impl Generator {
                             meta name="viewport" content="width=device-width, initial-scale=1";
                             link rel="stylesheet" href="/katex/katex.min.css";
                             title { (title) }
+                            @if let Some(author) = &self.config.author {
+                                meta name="author" content=(author);
+                            }
 
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for years? Should we just say
@@ -495,6 +500,9 @@ impl Generator {
                             meta name="viewport" content="width=device-width, initial-scale=1";
                             link rel="stylesheet" href="/katex/katex.min.css";
                             title { (title) }
+                            @if let Some(author) = &self.config.author {
+                                meta name="author" content=(author);
+                            }
 
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for months? Should we just say
@@ -590,6 +598,9 @@ impl Generator {
                             title { (title) }
                             @if !description.is_empty() {
                                 meta name="description" content=(description);
+                            }
+                            @if let Some(author) = &self.config.author {
+                                meta name="author" content=(author);
                             }
 
                             meta property="og:title" content=(title);
@@ -741,6 +752,9 @@ impl Generator {
                     meta name="description" content=(self.config.description);
                     link rel="stylesheet" href="/katex/katex.min.css";
                     title { (self.config.name) }
+                    @if let Some(author) = &self.config.author {
+                        meta name="author" content=(author);
+                    }
 
                     meta property="og:title" content=(self.config.name);
                     meta property="og:description" content=(self.config.description);
@@ -823,6 +837,9 @@ impl Generator {
                             title { (title) }
                             @if !description.is_empty() {
                                 meta name="description" content=(description);
+                            }
+                            @if let Some(author) = &self.config.author {
+                                meta name="author" content=(author);
                             }
 
                             meta property="og:title" content=(title);
@@ -914,6 +931,9 @@ impl Generator {
                     meta name="viewport" content="width=device-width, initial-scale=1";
                     link rel="stylesheet" href="/katex/katex.min.css";
                     title { (title) }
+                    @if let Some(author) = &self.config.author {
+                        meta name="author" content=(author);
+                    }
 
                     meta property="og:title" content=(title);
                     // TODO: What's a good description for the articles page?
@@ -1020,6 +1040,9 @@ impl Generator {
                                 meta charset="utf-8";
                                 meta name="viewport" content="width=device-width, initial-scale=1";
                                 title { (title) }
+                                @if let Some(author) = &config_ref.author {
+                                    meta name="author" content=(author);
+                                }
 
                                 meta property="og:title" content=(title);
                                 // TODO: Should there be a mechanism to set the description
