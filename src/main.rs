@@ -1240,6 +1240,8 @@ async fn main() -> Result<()> {
     let auth_token = std::env::var("NOTION_TOKEN").context("Missing NOTION_TOKEN env variable")?;
     let database_id = args.get(1).context("Missing page id as first argument")?;
 
+    tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::new())?;
+
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
