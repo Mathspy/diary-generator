@@ -1032,31 +1032,34 @@ impl Generator {
                 })
                 .and_then(|entry| async move {
                     let file_type = entry.file_type().await?;
-                    let file_name = match entry.file_name().into_string() {
-                        Ok(file_name) => file_name,
-                        Err(_) => bail!("A file in pages directory has a non-utf8 valid name"),
-                    };
+                    let path = entry.path();
 
                     if !file_type.is_file() {
                         bail!(
-                            "Pages directory must only contain HTML files but was passed {}",
-                            file_name
+                            "pages/ must only contain HTML files. {} which is not a file.",
+                            path.display(),
                         );
                     }
 
-                    let content = tokio::fs::read_to_string(entry.path()).await?;
+                    let (file_name, file_ext) =
+                        match path.file_name().and_then(std::ffi::OsStr::to_str) {
+                            Some(file_name) => {
+                                if let Some(file_without_ext) = file_name.strip_suffix(".html") {
+                                    (file_without_ext, "html")
+                                } else {
+                                    bail!(
+                                        "File {} isn't an HTML file, make sure it ends with .html",
+                                        file_name
+                                    )
+                                }
+                            }
+                            None => bail!("Not a valid html file {}", path.display()),
+                        };
 
-                    // We want the file without extension to use it both as a title and for links
-                    // since links go to /file not /file.html
-                    let mut file_without_ext = entry.path();
-                    file_without_ext.set_extension("");
-                    let path = file_without_ext
-                        .into_os_string()
-                        .into_string()
-                        .map_err(|_| anyhow::anyhow!("Unreachable checked above"))?;
+                    let content = tokio::fs::read_to_string(&path).await?;
 
                     // For title we want the first letter to be uppercase
-                    let mut title = path.clone();
+                    let mut title = file_name.to_string();
                     if let Some(first_char) = title.get_mut(0..1) {
                         first_char.make_ascii_uppercase();
                     }
@@ -1079,7 +1082,7 @@ impl Generator {
                                 meta property="og:locale" content=(config_ref.locale.locale);
                                 // TODO: Same as description but for images
                                 @if let Some(url) = &config_ref.url {
-                                    meta property="og:url" content=(url.join(&path)?);
+                                    meta property="og:url" content=(url.join(file_name)?);
                                 }
                                 @if let Some(twitter_site) = &config_ref.twitter.site {
                                     meta name="twitter:site" content=(twitter_site);
@@ -1102,7 +1105,9 @@ impl Generator {
                         }
                     };
 
-                    write(Path::new(EXPORT_DIR).join(path), markup.into_string()).await
+                    let mut path = Path::new(EXPORT_DIR).join(file_name);
+                    path.set_extension(file_ext);
+                    write(path, markup.into_string()).await
                 })
                 .try_collect::<()>()
                 .await
