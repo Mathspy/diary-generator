@@ -2,10 +2,12 @@ mod utils;
 
 use diary_generator::{Generator, Properties};
 use either::Either;
+use maud::{html, DOCTYPE};
 use notion_generator::response::{
     properties::{DateProperty, RichTextProperty, TitleProperty},
     NotionDate, Page, PageParent, RichText, RichTextType, Time,
 };
+use pretty_assertions::assert_eq;
 use std::fs;
 use tempdir::TempDir;
 use time::macros::date;
@@ -99,7 +101,27 @@ async fn empty_index() {
 
     assert_eq!(
         fs::read_to_string(cwd.path().join("output").join("index.html")).unwrap(),
-        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A neat diary"><link rel="stylesheet" href="/katex/katex.min.css"><title>Diary</title><meta property="og:title" content="Diary"><meta property="og:description" content="A neat diary"><meta property="og:locale" content="en_US"></head><body><header></header><main></main><footer></footer></body></html>"#
+        html! {
+            (DOCTYPE)
+            html lang="en" {
+                head {
+                    meta charset="utf-8";
+                    meta name="viewport" content="width=device-width, initial-scale=1";
+                    meta name="description" content="A neat diary";
+                    link rel="stylesheet" href="/katex/katex.min.css";
+                    title { "Diary" }
+                    meta property="og:title" content="Diary";
+                    meta property="og:description" content="A neat diary";
+                    meta property="og:locale" content="en_US";
+                }
+                body {
+                    header {}
+                    main {}
+                    footer {}
+                }
+            }
+        }
+        .into_string(),
     );
 }
 
@@ -161,6 +183,66 @@ There’s no turning back now",
 
     assert_eq!(
         fs::read_to_string(cwd.path().join("output").join("index.html")).unwrap(),
-        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A neat diary"><link rel="stylesheet" href="/katex/katex.min.css"><title>Diary</title><meta property="og:title" content="Diary"><meta property="og:description" content="A neat diary"><meta property="og:locale" content="en_US"></head><body><header></header><main><section><h1><a href="2021">2021</a></h1><section><h2><a href="2021/11">November</a></h2><article><header><h3><a href="/2021/11/07">Day 0: Nannou, helping L, and lots of noise</a></h3><p><time datetime="2021-11-07">November 07, 2021</time></p></header><p>Every journey starts with 1 O'clock: assistance. I just didn't know mine will also start with noise.</p></article><article><header><h3><a href="/2021/11/08">Day 1: Down the rabbit hole we go</a></h3><p><time datetime="2021-11-08">November 08, 2021</time></p></header><p>Alice starts making games by watching trains with the loveliest coding conductor.</p></article><article><header><h3><a href="/2021/11/09">Day 2: Enter Bevy &amp; Shaders are hard</a></h3><p><time datetime="2021-11-09">November 09, 2021</time></p></header><p>3 O’clock: departure. We are not entering the world of Bevy where we will actually make things happen. There’s no turning back now</p></article></section></section></main><footer></footer></body></html>"#
+        html! {
+            (DOCTYPE)
+            html lang="en" {
+                head {
+                    meta charset="utf-8";
+                    meta name="viewport" content="width=device-width, initial-scale=1";
+                    meta name="description" content="A neat diary";
+                    link rel="stylesheet" href="/katex/katex.min.css";
+                    title { "Diary" }
+                    meta property="og:title" content="Diary";
+                    meta property="og:description" content="A neat diary";
+                    meta property="og:locale" content="en_US";
+                }
+                body {
+                    header {}
+                    main {
+                        section {
+                            h1 { a href="2021" { "2021" } }
+                            section {
+                                h2 { a href="2021/11" { "November" } }
+                                article {
+                                    header {
+                                        h3 {
+                                            a href="/2021/11/07" {
+                                                "Day 0: Nannou, helping L, and lots of noise"
+                                            }
+                                        }
+                                        p { time datetime="2021-11-07" { "November 07, 2021" } }
+                                    }
+                                    p { "Every journey starts with 1 O'clock: assistance. I just didn't know mine will also start with noise." }
+                                }
+                                article {
+                                    header {
+                                        h3 {
+                                            a href="/2021/11/08" {
+                                                "Day 1: Down the rabbit hole we go"
+                                            }
+                                        }
+                                        p { time datetime="2021-11-08" { "November 08, 2021" } }
+                                    }
+                                    p { "Alice starts making games by watching trains with the loveliest coding conductor." }
+                                }
+                                article {
+                                    header {
+                                        h3 {
+                                            a href="/2021/11/09" {
+                                                "Day 2: Enter Bevy & Shaders are hard"
+                                            }
+                                        }
+                                        p { time datetime="2021-11-09" { "November 09, 2021" } }
+                                    }
+                                    p { "3 O’clock: departure. We are not entering the world of Bevy where we will actually make things happen. There’s no turning back now" }
+                                }
+                            }
+                        }
+                    }
+                    footer {}
+                }
+            }
+        }
+        .into_string(),
     );
 }
