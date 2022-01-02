@@ -17,7 +17,7 @@ async fn main() -> Result<()> {
     let client = NotionClient::new(auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
-    let generator = Generator::new(pages).await?;
+    let generator = Generator::new(std::env::current_dir()?, pages).await?;
 
     let (first_date, last_date) = match generator.get_first_and_last_dates() {
         Some(dates) => dates,
