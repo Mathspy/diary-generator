@@ -206,13 +206,13 @@ There’s no turning back now",
                                 article {
                                     header {
                                         h3 {
-                                            a href="/2021/11/07" {
-                                                "Day 0: Nannou, helping L, and lots of noise"
+                                            a href="/2021/11/09" {
+                                                "Day 2: Enter Bevy & Shaders are hard"
                                             }
                                         }
-                                        p { time datetime="2021-11-07" { "November 07, 2021" } }
+                                        p { time datetime="2021-11-09" { "November 09, 2021" } }
                                     }
-                                    p { "Every journey starts with 1 O'clock: assistance. I just didn't know mine will also start with noise." }
+                                    p { "3 O’clock: departure. We are not entering the world of Bevy where we will actually make things happen. There’s no turning back now" }
                                 }
                                 article {
                                     header {
@@ -228,13 +228,13 @@ There’s no turning back now",
                                 article {
                                     header {
                                         h3 {
-                                            a href="/2021/11/09" {
-                                                "Day 2: Enter Bevy & Shaders are hard"
+                                            a href="/2021/11/07" {
+                                                "Day 0: Nannou, helping L, and lots of noise"
                                             }
                                         }
-                                        p { time datetime="2021-11-09" { "November 09, 2021" } }
+                                        p { time datetime="2021-11-07" { "November 07, 2021" } }
                                     }
-                                    p { "3 O’clock: departure. We are not entering the world of Bevy where we will actually make things happen. There’s no turning back now" }
+                                    p { "Every journey starts with 1 O'clock: assistance. I just didn't know mine will also start with noise." }
                                 }
                             }
                         }

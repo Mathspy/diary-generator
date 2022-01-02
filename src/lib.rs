@@ -662,6 +662,7 @@ impl Generator {
             .lookup_tree
             .iter()
             .filter(|(_, page)| self.filter_unpublished(page))
+            .rev()
             .map(|(&date, page)| IndexMonth {
                 month: (date.year(), date.month()),
                 markup: (html! {
