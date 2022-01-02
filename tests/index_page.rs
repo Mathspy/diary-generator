@@ -8,9 +8,8 @@ use utils::DirEntry;
 #[tokio::test]
 async fn empty_index() {
     let cwd = TempDir::new("empty_index").unwrap();
-    std::env::set_current_dir(&cwd).unwrap();
 
-    let generator = Generator::new(Vec::new()).await.unwrap();
+    let generator = Generator::new(&cwd, Vec::new()).await.unwrap();
     generator
         .generate_index_page()
         .unwrap()

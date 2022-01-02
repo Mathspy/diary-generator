@@ -176,10 +176,11 @@ pub struct Generator {
     header: Markup,
     footer: Markup,
     config: Config,
+    directory: PathBuf,
 }
 
 impl Generator {
-    pub async fn new(pages: Vec<Page<Properties>>) -> Result<Generator> {
+    pub async fn new<P: AsRef<Path>>(dir: P, pages: Vec<Page<Properties>>) -> Result<Generator> {
         let length = pages.len();
 
         let (link_map, lookup_tree, article_pages) = pages
@@ -271,6 +272,7 @@ impl Generator {
             header,
             footer,
             config,
+            directory: dir.as_ref().to_owned(),
         })
     }
 
@@ -427,7 +429,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(path);
+                let mut path = self.directory.join(EXPORT_DIR).join(path);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -526,7 +528,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(path);
+                let mut path = self.directory.join(EXPORT_DIR).join(path);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -628,7 +630,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(path);
+                let mut path = self.directory.join(EXPORT_DIR).join(path);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -780,7 +782,7 @@ impl Generator {
             }
         };
 
-        let mut path = Path::new(EXPORT_DIR).join("index");
+        let mut path = self.directory.join(EXPORT_DIR).join("index");
         path.set_extension("html");
 
         Ok(tokio::spawn(write(path, markup.into_string())))
@@ -866,7 +868,7 @@ impl Generator {
                     }
                 };
 
-                let mut path = Path::new(EXPORT_DIR).join(url);
+                let mut path = self.directory.join(EXPORT_DIR).join(url);
                 path.set_extension("html");
                 Ok(Some((path, markup)))
             })
@@ -956,7 +958,7 @@ impl Generator {
             }
         };
 
-        let mut path = Path::new(EXPORT_DIR).join("articles");
+        let mut path = self.directory.join(EXPORT_DIR).join("articles");
         path.set_extension("html");
         Ok(tokio::spawn(write(path, markup.into_string())))
     }
@@ -972,6 +974,7 @@ impl Generator {
         let header = self.header.clone();
         let footer = self.footer.clone();
         let config = self.config.clone();
+        let directory = self.directory.clone();
 
         tokio::spawn(async move {
             let files = ReadDirStream::new(tokio::fs::read_dir("pages").await?);
@@ -982,6 +985,7 @@ impl Generator {
             let header_ref = &header;
             let footer_ref = &footer;
             let config_ref = &config;
+            let directory_ref = &directory;
 
             files
                 .map(|result| {
@@ -1064,7 +1068,7 @@ impl Generator {
                         }
                     };
 
-                    let mut path = Path::new(EXPORT_DIR).join(file_name);
+                    let mut path = directory_ref.join(EXPORT_DIR).join(file_name);
                     path.set_extension(file_ext);
                     write(path, markup.into_string()).await
                 })
