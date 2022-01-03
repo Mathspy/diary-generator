@@ -14,7 +14,8 @@ async fn main() -> Result<()> {
 
     tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::new())?;
 
-    let client = NotionClient::new(auth_token);
+    let reqwest_client = reqwest::Client::new();
+    let client = NotionClient::with_client(reqwest_client.clone(), auth_token);
     let pages = client.get_database_pages::<Properties>(database_id).await?;
 
     let generator = Generator::new(std::env::current_dir()?, pages).await?;
@@ -25,7 +26,7 @@ async fn main() -> Result<()> {
     };
 
     let results = tokio::try_join!(
-        katex::download(client.client().clone()),
+        katex::download(reqwest_client.clone()),
         generator.generate_years(first_date, last_date)?,
         generator.generate_months(first_date, last_date)?,
         generator.generate_days()?,
@@ -49,7 +50,7 @@ async fn main() -> Result<()> {
         (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
-    generator.download_all(client.client().clone()).await?;
+    generator.download_all(reqwest_client.clone()).await?;
 
     Ok(())
 }
