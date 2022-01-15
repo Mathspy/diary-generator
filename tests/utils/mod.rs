@@ -1,9 +1,13 @@
+mod page;
+
 use std::{
     collections::HashMap,
     ffi::{OsStr, OsString},
     fs,
     path::Path,
 };
+
+pub use page::new as new_page;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DirEntry {
