@@ -6,6 +6,7 @@ use std::{
     fs,
     path::Path,
 };
+use tempdir::TempDir;
 
 pub use page::new as new_page;
 
@@ -80,3 +81,39 @@ impl DirEntry {
         }
     }
 }
+
+pub struct TestDir(TempDir);
+
+impl TestDir {
+    pub fn new(function_name: &str) -> Self {
+        Self(TempDir::new(&function_name.replace("::", "_")).unwrap())
+    }
+
+    pub fn path(&self) -> &Path {
+        self.0.path()
+    }
+}
+
+impl AsRef<Path> for TestDir {
+    fn as_ref(&self) -> &Path {
+        self.0.as_ref()
+    }
+}
+
+// Adopted from this answer
+// https://stackoverflow.com/a/40234666/3018913
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        // Due to tokio::test the actual test will be wrapped in a closure that
+        // we want to remove from function name
+        const TOKIO_CLOSURE: usize = "::{{closure}}".len();
+        &name[..name.len() - 3 - TOKIO_CLOSURE]
+    }};
+}
+
+pub(crate) use function;

@@ -6,13 +6,12 @@ use maud::{html, DOCTYPE};
 use notion_generator::response::Time;
 use pretty_assertions::assert_eq;
 use std::fs;
-use tempdir::TempDir;
 use time::macros::date;
-use utils::{new_page, DirEntry};
+use utils::{function, new_page, DirEntry, TestDir};
 
 #[tokio::test]
 async fn empty_index() {
-    let cwd = TempDir::new("empty_index").unwrap();
+    let cwd = TestDir::new(function!());
 
     let generator = Generator::new(&cwd, Vec::new()).await.unwrap();
     generator
@@ -58,7 +57,7 @@ async fn empty_index() {
 
 #[tokio::test]
 async fn simple_index() {
-    let cwd = TempDir::new("simple_index").unwrap();
+    let cwd = TestDir::new(function!());
 
     let generator = Generator::new(
         &cwd,
