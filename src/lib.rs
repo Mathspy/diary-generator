@@ -1,5 +1,3 @@
-#![feature(map_first_last)]
-
 mod config;
 pub mod katex;
 mod months;
