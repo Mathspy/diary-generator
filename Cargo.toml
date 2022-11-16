@@ -18,7 +18,7 @@ notion-generator = { git = "https://github.com/Mathspy/notion-generator", rev = 
 reqwest = { version = "0.11.12", default-features = false, features = ["json", "rustls-tls-native-roots"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
-time = { git = "https://github.com/Mathspy/time", branch = "fmt-write", features = ["formatting", "parsing", "macros"] }
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
 tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
 tokio-stream = { version = "0.1", features = ["fs"] }
 tracing = { version = "0.1" }
