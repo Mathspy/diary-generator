@@ -27,7 +27,7 @@ jobs:
           override: true
           components: clippy
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
 
       - name: Clippy is lovely <3
         run: cargo clippy --workspace -- --deny clippy::all
@@ -47,7 +47,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
 
       - name: Running tests
         run: cargo test --workspace
@@ -63,7 +63,7 @@ jobs:
           override: true
           components: rustfmt
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
 
       - name: Checking format
         run: cargo fmt --all -- --check
@@ -79,7 +79,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
 
       - name: Build
         uses: actions-rs/cargo@v1
