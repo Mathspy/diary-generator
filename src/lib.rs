@@ -169,7 +169,6 @@ pub struct Generator {
     lookup_tree: BTreeMap<Date, Page<Properties>>,
     article_pages: Vec<(String, Page<Properties>)>,
     downloadables: Downloadables,
-    today: Date,
     head: Markup,
     header: Markup,
     footer: Markup,
@@ -181,8 +180,18 @@ impl Generator {
     pub async fn new<P: AsRef<Path>>(dir: P, pages: Vec<Page<Properties>>) -> Result<Generator> {
         let length = pages.len();
 
+        let today = time::OffsetDateTime::now_utc().date();
+
         let (link_map, lookup_tree, article_pages) = pages
             .into_iter()
+            .filter(|page| {
+                page.properties
+                    .published
+                    .date
+                    .as_ref()
+                    .map(|date| date.start <= today)
+                    .unwrap_or(false)
+            })
             .map(|page| {
                 let date = page
                     .properties
@@ -201,10 +210,9 @@ impl Generator {
                     ),
                     (Some(Either::Left(date)), Some(url)) => bail!("Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}", page.id, date, url),
                     (None, None) => bail!("Diary pages must have either a date or a URL"),
-                    (Some(Either::Left(date)), None) => (
-                        format_day(date, true),
-                        Either::Left(date),
-                    ),
+                    (Some(Either::Left(date)), None) => {
+                        (format_day(date, true), Either::Left(date))
+                    }
                     (None, Some(url)) => (format!("/{}", url), Either::Right(url)),
                 };
 
@@ -229,8 +237,6 @@ impl Generator {
                     Ok((link_map, lookup_tree, article_pages))
                 },
             )?;
-
-        let today = time::OffsetDateTime::now_utc().date();
 
         let read_config_file = async {
             tokio::fs::File::open("config.json")
@@ -265,7 +271,6 @@ impl Generator {
             link_map,
             lookup_tree,
             article_pages,
-            today,
             head,
             header,
             footer,
@@ -291,15 +296,6 @@ impl Generator {
             Some((path, markup)) => write(path, markup.into_string()).await,
             None => Ok(()),
         }
-    }
-
-    fn filter_unpublished(&self, page: &Page<Properties>) -> bool {
-        page.properties
-            .published
-            .date
-            .as_ref()
-            .map(|date| date.start <= self.today)
-            .unwrap_or(false)
     }
 
     fn render_article<I>(
@@ -359,7 +355,6 @@ impl Generator {
 
                 let (current_pages, pages) = range
                     .map(|(_, page)| page)
-                    .filter(|page| self.filter_unpublished(page))
                     .map(|page| (page.id, page))
                     .unzip::<_, _, HashSet<_>, Vec<_>>();
 
@@ -458,7 +453,6 @@ impl Generator {
 
                 let (current_pages, pages) = range
                     .map(|(_, page)| page)
-                    .filter(|page| self.filter_unpublished(page))
                     .map(|page| (page.id, page))
                     .unzip::<_, _, HashSet<_>, Vec<_>>();
 
@@ -540,7 +534,6 @@ impl Generator {
         let days = self
             .lookup_tree
             .iter()
-            .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(date, page)| {
                 let renderer = HtmlRenderer {
                     heading_anchors: HeadingAnchors::After("#"),
@@ -567,11 +560,11 @@ impl Generator {
                     .lookup_tree
                     .range((Bound::Unbounded, Bound::Excluded(date)))
                     .rev()
-                    .find(|(_, page)| self.filter_unpublished(page));
+                    .next();
                 let next_page = self
                     .lookup_tree
                     .range((Bound::Excluded(date), Bound::Unbounded))
-                    .find(|(_, page)| self.filter_unpublished(page));
+                    .next();
 
                 let cover = self.download_cover(page)?;
                 let path = format_day(*date, false);
@@ -659,7 +652,6 @@ impl Generator {
         let years = self
             .lookup_tree
             .iter()
-            .filter(|(_, page)| self.filter_unpublished(page))
             .rev()
             .map(|(&date, page)| IndexMonth {
                 month: (date.year(), date.month()),
@@ -791,7 +783,6 @@ impl Generator {
         let articles = self
             .article_pages
             .iter()
-            .filter(|(_, page)| self.filter_unpublished(page))
             .map(|(url, page)| {
                 let renderer = HtmlRenderer {
                     heading_anchors: HeadingAnchors::After("#"),
@@ -889,7 +880,7 @@ impl Generator {
             let published_date = page.properties.published.date.as_ref().map(get_date);
 
             let published_date = match published_date {
-                Some(published_date) if self.filter_unpublished(page) => published_date,
+                Some(published_date) => published_date,
                 _ => return None,
             };
 
