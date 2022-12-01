@@ -6,7 +6,7 @@ use notion_generator::response::{
 };
 use time::macros::date;
 
-pub fn new(id: &str, title: &str, date: Time, description: &str) -> Page<Properties> {
+pub fn new(id: &str, title: &str, description: &str, date: Option<Time>) -> Page<Properties> {
     Page {
         object: "page".to_string(),
         id: id.parse().unwrap(),
@@ -41,7 +41,7 @@ pub fn new(id: &str, title: &str, date: Time, description: &str) -> Page<Propert
             },
             date: DateProperty {
                 id: "TKGl".to_string(),
-                date: Some(NotionDate {
+                date: date.map(|date| NotionDate {
                     start: date,
                     end: None,
                     time_zone: None,

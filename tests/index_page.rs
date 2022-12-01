@@ -65,32 +65,32 @@ async fn simple_index() {
             new_page(
                 "cf2bacc9d75c4226aab53601c336f295",
                 "Day 0: Nannou, helping L, and lots of noise",
-                Time {
-                    original: "2021-11-07".to_string(),
-                    parsed: Either::Left(date!(2021 - 11 - 07)),
-                },
                 "Every journey starts with 1 O'clock: assistance. \
 I just didn't know mine will also start with noise.",
+                Some(Time {
+                    original: "2021-11-07".to_string(),
+                    parsed: Either::Left(date!(2021 - 11 - 07)),
+                }),
             ),
             new_page(
                 "ac3fb543001f4be5a25e4978abd05b1d",
                 "Day 1: Down the rabbit hole we go",
-                Time {
+                "Alice starts making games by watching trains with the loveliest coding conductor.",
+                Some(Time {
                     original: "2021-11-08".to_string(),
                     parsed: Either::Left(date!(2021 - 11 - 08)),
-                },
-                "Alice starts making games by watching trains with the loveliest coding conductor.",
+                }),
             ),
             new_page(
                 "ac3fb543001f4be5a25e4978abd05b1d",
                 "Day 2: Enter Bevy & Shaders are hard",
-                Time {
-                    original: "2021-11-09".to_string(),
-                    parsed: Either::Left(date!(2021 - 11 - 09)),
-                },
                 "3 O’clock: departure. \
 We are not entering the world of Bevy where we will actually make things happen. \
 There’s no turning back now",
+                Some(Time {
+                    original: "2021-11-09".to_string(),
+                    parsed: Either::Left(date!(2021 - 11 - 09)),
+                }),
             ),
         ],
     )
