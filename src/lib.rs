@@ -385,7 +385,7 @@ impl Generator {
                             link rel="stylesheet" href="/katex/katex.min.css";
                             title { (title) }
                             @if let Some(author) = &self.config.author {
-                                meta name="author" content=(author);
+                                meta name="author" content=(author.name);
                             }
 
                             meta property="og:title" content=(title);
@@ -483,7 +483,7 @@ impl Generator {
                             link rel="stylesheet" href="/katex/katex.min.css";
                             title { (title) }
                             @if let Some(author) = &self.config.author {
-                                meta name="author" content=(author);
+                                meta name="author" content=(author.name);
                             }
 
                             meta property="og:title" content=(title);
@@ -581,7 +581,7 @@ impl Generator {
                                 meta name="description" content=(description);
                             }
                             @if let Some(author) = &self.config.author {
-                                meta name="author" content=(author);
+                                meta name="author" content=(author.name);
                             }
 
                             meta property="og:title" content=(title);
@@ -734,7 +734,7 @@ impl Generator {
                     link rel="stylesheet" href="/katex/katex.min.css";
                     title { (self.config.name) }
                     @if let Some(author) = &self.config.author {
-                        meta name="author" content=(author);
+                        meta name="author" content=(author.name);
                     }
 
                     meta property="og:title" content=(self.config.name);
@@ -819,7 +819,7 @@ impl Generator {
                                 meta name="description" content=(description);
                             }
                             @if let Some(author) = &self.config.author {
-                                meta name="author" content=(author);
+                                meta name="author" content=(author.name);
                             }
 
                             meta property="og:title" content=(title);
@@ -912,7 +912,7 @@ impl Generator {
                     link rel="stylesheet" href="/katex/katex.min.css";
                     title { (title) }
                     @if let Some(author) = &self.config.author {
-                        meta name="author" content=(author);
+                        meta name="author" content=(author.name);
                     }
 
                     meta property="og:title" content=(title);
@@ -1026,7 +1026,7 @@ impl Generator {
                                 meta name="viewport" content="width=device-width, initial-scale=1";
                                 title { (title) }
                                 @if let Some(author) = &config_ref.author {
-                                    meta name="author" content=(author);
+                                    meta name="author" content=(author.name);
                                 }
 
                                 meta property="og:title" content=(title);
