@@ -1,6 +1,7 @@
 mod config;
 pub mod katex;
 mod months;
+mod syndication;
 
 use crate::config::Config;
 use anyhow::{bail, Context, Result};
