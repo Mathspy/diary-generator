@@ -41,6 +41,7 @@ pub struct Config {
     pub(crate) name: String,
     pub(crate) description: String,
     pub(crate) author: Option<Author>,
+    pub(crate) icon: Option<String>,
     pub(crate) cover: Option<String>,
     #[serde(deserialize_with = "deserializers::locale")]
     pub(crate) locale: LocaleConfig,
@@ -74,6 +75,7 @@ impl Default for Config {
             name: "Diary".to_string(),
             description: "A neat diary".to_string(),
             author: None,
+            icon: None,
             cover: None,
             locale: LocaleConfig {
                 locale: "en_US".to_string(),
