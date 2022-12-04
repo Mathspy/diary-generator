@@ -40,13 +40,18 @@ mod deserializers {
 pub struct Config {
     pub(crate) name: String,
     pub(crate) description: String,
-    pub(crate) author: Option<String>,
+    pub(crate) author: Option<Author>,
     pub(crate) cover: Option<String>,
     #[serde(deserialize_with = "deserializers::locale")]
     pub(crate) locale: LocaleConfig,
     #[serde(deserialize_with = "deserializers::url")]
     pub(crate) url: Option<reqwest::Url>,
     pub(crate) twitter: TwitterConfig,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Author {
+    pub(crate) name: String,
 }
 
 #[derive(Clone)]
