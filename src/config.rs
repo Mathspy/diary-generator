@@ -52,6 +52,8 @@ pub struct Config {
 #[derive(Clone, Deserialize)]
 pub struct Author {
     pub(crate) name: String,
+    #[serde(deserialize_with = "deserializers::url")]
+    pub(crate) url: Option<reqwest::Url>,
 }
 
 #[derive(Clone)]
