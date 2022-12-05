@@ -155,14 +155,14 @@ async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(
     Ok(())
 }
 
-async fn read_partial_file(file: &str) -> Result<String> {
-    tokio::fs::read_to_string(Path::new("partials").join(file))
+async fn read_partial_file<P: AsRef<Path>>(file: P) -> Result<String> {
+    tokio::fs::read_to_string(Path::new("partials").join(file.as_ref()))
         .await
         .or_else(|error| match error.kind() {
             io::ErrorKind::NotFound => Ok(String::new()),
             _ => Err(error),
         })
-        .with_context(|| format!("Failed to read partial file {}", file))
+        .with_context(|| format!("Failed to read partial file {}", file.as_ref().display()))
 }
 
 pub struct Generator {
