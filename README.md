@@ -39,8 +39,16 @@ You can also include a `config.json` file in the directory to modify the behavio
   "name": String,
   // The description to use for home page
   "description": String,
-  // If present will be used for <meta name="author"> in all pages
-  "author": String | null,
+  // Information about the author
+  "author": {
+    // If author is present name will be used for <meta name="author"> in all pages
+    "name": String,
+    // The URL of the author if they have a personal website they can be found at
+    "url": String | null
+  } | null,
+  // If present will be used for as icon for Atom/RSS feed
+  // Should be the relative or absolute path to an image, preferably of dimensions 1:1 and small
+  "icon": String | null,
   // If present will be used for as thumbnail for home page using <meta property="og:image">
   // Should be the relative or absolute path to an image, preferably of size 1200x630
   "cover": String | null,
