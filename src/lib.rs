@@ -889,7 +889,7 @@ impl Generator {
             },
             icon: self.config.icon.as_deref(),
             cover: self.config.cover.as_deref(),
-            lang: &self.config.locale.locale,
+            lang: &self.config.locale.lang,
             entries,
         };
 

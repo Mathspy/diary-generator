@@ -82,7 +82,7 @@ async fn plentiful_configurations() {
         xml_string_to_events(
             r##"
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en_US">
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
    <id>https://gamediary.dev/</id>
    <title>Game Dev Diary</title>
    <updated>2021-12-08T00:00:00Z</updated>
@@ -239,7 +239,7 @@ There’s no turning back now",
         xml_string_to_events(
             r##"
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en_US">
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
    <id>https://example.com/</id>
    <title>Diary</title>
    <updated>2021-12-09T00:00:00Z</updated>
