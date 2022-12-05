@@ -856,10 +856,11 @@ impl Generator {
             .map(|(time, id, page)| {
                 let blocks = renderer.render_blocks(&page.children, None, 0);
 
-                let url = match id {
-                    UrlOrDate::Url(path) => url.join(&path)?.into(),
+                let path = match id {
+                    UrlOrDate::Url(path) => path,
                     UrlOrDate::Date(date) => format_day(date, true),
                 };
+                let url = url.join(&path)?.into();
 
                 Ok(atom::Entry {
                     title: page.properties.name.title.plain_text(),
