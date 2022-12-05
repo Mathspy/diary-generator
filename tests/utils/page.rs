@@ -87,3 +87,44 @@ pub fn new(
         children: vec![],
     }
 }
+
+pub fn new_article(
+    id: &str,
+    title: &str,
+    description: &str,
+    url: &str,
+    publish: Option<Date>,
+) -> Page<Properties> {
+    let base_page = new(id, title, description, None, publish);
+
+    Page {
+        properties: Properties {
+            name: TitleProperty {
+                id: "title".to_string(),
+                title: vec![RichText {
+                    ty: RichTextType::Text {
+                        content: title.to_string(),
+                        link: None,
+                    },
+                    annotations: Default::default(),
+                    plain_text: title.to_string(),
+                    href: None,
+                }],
+            },
+            url: RichTextProperty {
+                id: "NB%3BU".to_string(),
+                rich_text: vec![RichText {
+                    plain_text: url.to_string(),
+                    href: None,
+                    annotations: Default::default(),
+                    ty: RichTextType::Text {
+                        content: url.to_string(),
+                        link: None,
+                    },
+                }],
+            },
+            ..base_page.properties
+        },
+        ..base_page
+    }
+}
