@@ -13,6 +13,7 @@ async fn unpublished_pages_dont_cause_crashes() {
         "unpublished page with no date",
         "just a page without a publish date yet",
         None,
+        None,
     );
 
     Generator::new(
