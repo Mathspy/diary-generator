@@ -9,7 +9,7 @@ use std::{
 };
 use tempdir::TempDir;
 
-pub use page::new as new_page;
+pub use page::new as new_entry;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DirEntry {

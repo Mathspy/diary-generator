@@ -7,7 +7,7 @@ use notion_generator::response::Time;
 use pretty_assertions::assert_eq;
 use std::fs;
 use time::macros::date;
-use utils::{function, new_page, DirEntry, TestDir};
+use utils::{function, new_entry, DirEntry, TestDir};
 
 #[tokio::test]
 async fn empty_index() {
@@ -62,7 +62,7 @@ async fn simple_index() {
     let generator = Generator::new(
         &cwd,
         vec![
-            new_page(
+            new_entry(
                 "cf2bacc9d75c4226aab53601c336f295",
                 "Day 0: Nannou, helping L, and lots of noise",
                 "Every journey starts with 1 O'clock: assistance. \
@@ -72,7 +72,7 @@ I just didn't know mine will also start with noise.",
                     parsed: Either::Left(date!(2021 - 11 - 07)),
                 }),
             ),
-            new_page(
+            new_entry(
                 "ac3fb543001f4be5a25e4978abd05b1d",
                 "Day 1: Down the rabbit hole we go",
                 "Alice starts making games by watching trains with the loveliest coding conductor.",
@@ -81,7 +81,7 @@ I just didn't know mine will also start with noise.",
                     parsed: Either::Left(date!(2021 - 11 - 08)),
                 }),
             ),
-            new_page(
+            new_entry(
                 "ac3fb543001f4be5a25e4978abd05b1d",
                 "Day 2: Enter Bevy & Shaders are hard",
                 "3 O’clock: departure. \
