@@ -95,7 +95,7 @@ async fn plentiful_configurations() {
    <link rel="alternate" href="https://gamediary.dev/feed.xml" />
    <logo>/media/cover.png</logo>
    <entry>
-      <id>interesting_article</id>
+      <id>https://gamediary.dev/interesting_article</id>
       <title type="html">Some article about something</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-08T00:00:00Z</published>
@@ -268,7 +268,7 @@ There’s no turning back now",
       </content>
    </entry>
    <entry>
-      <id>interesting_article</id>
+      <id>https://example.com/interesting_article</id>
       <title type="html">Some article about something</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-08T00:00:00Z</published>

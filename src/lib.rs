@@ -857,7 +857,7 @@ impl Generator {
                 let blocks = renderer.render_blocks(&page.children, None, 0);
 
                 let url = match id {
-                    UrlOrDate::Url(url) => url,
+                    UrlOrDate::Url(path) => url.join(&path)?.into(),
                     UrlOrDate::Date(date) => format_day(date, true),
                 };
 
