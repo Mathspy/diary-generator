@@ -1,13 +1,15 @@
 mod config;
 pub mod katex;
 mod months;
+mod syndication;
 
 use crate::config::Config;
+use crate::syndication::atom;
 use anyhow::{bail, Context, Result};
 use either::Either;
 use futures_util::stream::{FuturesUnordered, StreamExt, TryStreamExt};
 use itertools::Itertools;
-use maud::{html, Markup, PreEscaped, DOCTYPE};
+use maud::{html, Markup, PreEscaped, Render, DOCTYPE};
 use notion_generator::{
     download::Downloadables,
     options::HeadingAnchors,
@@ -26,12 +28,19 @@ use std::{
     ops::{Bound, Not},
     path::{Path, PathBuf},
 };
-use time::{format_description::FormatItem, macros::format_description, Date, Month};
+use time::{
+    format_description::{well_known::Rfc3339, FormatItem},
+    macros::format_description,
+    Date, Month, OffsetDateTime,
+};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReadDirStream;
-use tracing::info;
+use tracing::{info, warn};
 
 pub const EXPORT_DIR: &str = "output";
+pub const DIARY_GENERATOR: &str = env!("CARGO_PKG_NAME");
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
 #[derive(Deserialize)]
 pub struct Properties {
@@ -154,14 +163,14 @@ async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(
     Ok(())
 }
 
-async fn read_partial_file(file: &str) -> Result<String> {
-    tokio::fs::read_to_string(Path::new("partials").join(file))
+async fn read_partial_file<P: AsRef<Path>>(file: P) -> Result<String> {
+    tokio::fs::read_to_string(Path::new("partials").join(file.as_ref()))
         .await
         .or_else(|error| match error.kind() {
             io::ErrorKind::NotFound => Ok(String::new()),
             _ => Err(error),
         })
-        .with_context(|| format!("Failed to read partial file {}", file))
+        .with_context(|| format!("Failed to read partial file {}", file.as_ref().display()))
 }
 
 pub struct Generator {
@@ -178,6 +187,7 @@ pub struct Generator {
 
 impl Generator {
     pub async fn new<P: AsRef<Path>>(dir: P, pages: Vec<Page<Properties>>) -> Result<Generator> {
+        let dir = dir.as_ref();
         let length = pages.len();
 
         let today = time::OffsetDateTime::now_utc().date();
@@ -239,7 +249,7 @@ impl Generator {
             )?;
 
         let read_config_file = async {
-            tokio::fs::File::open("config.json")
+            tokio::fs::File::open(dir.join("config.json"))
                 .await
                 .map(Some)
                 .or_else(|error| match error.kind() {
@@ -250,9 +260,9 @@ impl Generator {
         };
 
         let (head, header, footer, config_file) = tokio::try_join!(
-            read_partial_file("head.html"),
-            read_partial_file("header.html"),
-            read_partial_file("footer.html"),
+            read_partial_file(dir.join("head.html")),
+            read_partial_file(dir.join("header.html")),
+            read_partial_file(dir.join("footer.html")),
             read_config_file,
         )?;
         let head = PreEscaped(head);
@@ -275,7 +285,7 @@ impl Generator {
             header,
             footer,
             config,
-            directory: dir.as_ref().to_owned(),
+            directory: dir.to_owned(),
         })
     }
 
@@ -777,6 +787,114 @@ impl Generator {
         path.set_extension("html");
 
         Ok(tokio::spawn(write(path, markup.into_string())))
+    }
+
+    pub fn generate_atom_feed(&self) -> Result<JoinHandle<Result<()>>> {
+        const FEED_FILE: &str = "feed.xml";
+
+        let url = if let Some(url) = &self.config.url {
+            url.clone()
+        } else {
+            warn!("Cannot generate Atom feed without a unique URL to identify it");
+            return Ok(tokio::spawn(async { Ok(()) }));
+        };
+
+        let authors = if let Some(author) = &self.config.author {
+            vec![atom::Person {
+                name: &author.name,
+                email: None,
+                url: author.url.clone(),
+            }]
+        } else {
+            Vec::new()
+        };
+
+        enum UrlOrDate {
+            Url(String),
+            Date(Date),
+        }
+
+        let publications_ordered = self
+            .article_pages
+            .iter()
+            .map(|(url, page)| (UrlOrDate::Url(url.to_owned()), page))
+            .chain(
+                self.lookup_tree
+                    .iter()
+                    .map(|(date, page)| (UrlOrDate::Date(*date), page)),
+            )
+            .filter_map(|(id, page)| {
+                page.properties.published.date.as_ref().map(|date| {
+                    let datetime = match date.start.parsed {
+                        Either::Left(date) => date.with_time(time::Time::MIDNIGHT).assume_utc(),
+                        Either::Right(datetime) => datetime,
+                    };
+                    (datetime, id, page)
+                })
+            })
+            .sorted_unstable_by_key(|page| page.0)
+            .collect::<Vec<_>>();
+
+        let last_publication = if let Some((time, _, _)) = publications_ordered.last() {
+            *time
+        } else {
+            return Ok(tokio::spawn(async { Ok(()) }));
+        };
+
+        let renderer = HtmlRenderer {
+            heading_anchors: HeadingAnchors::None,
+            current_pages: publications_ordered
+                .iter()
+                .map(|(_, _, page)| page.id)
+                .collect(),
+            link_map: &self.link_map,
+            downloadables: &self.downloadables,
+        };
+
+        let entries = publications_ordered
+            .into_iter()
+            .map(|(time, id, page)| {
+                let blocks = renderer.render_blocks(&page.children, None, 0);
+
+                let url = match id {
+                    UrlOrDate::Url(url) => url,
+                    UrlOrDate::Date(date) => format_day(date, true),
+                };
+
+                Ok(atom::Entry {
+                    title: page.properties.name.title.plain_text(),
+                    url,
+                    updated: OffsetDateTime::parse(&page.last_edited_time, &Rfc3339)?,
+                    published: time,
+                    summary: page.properties.description.rich_text.plain_text(),
+                    content: html! {
+                        @for block in blocks {
+                            (block?)
+                        }
+                    },
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let feed = atom::Feed {
+            title: &self.config.name,
+            url: url.clone(),
+            feed_url: url.join(FEED_FILE)?,
+            last_changed: last_publication,
+            authors,
+            generator: atom::Generator {
+                value: DIARY_GENERATOR,
+                uri: REPOSITORY,
+                version: VERSION,
+            },
+            icon: self.config.icon.as_deref(),
+            cover: self.config.cover.as_deref(),
+            lang: &self.config.locale.locale,
+            entries,
+        };
+
+        let path = self.directory.join(EXPORT_DIR).join(FEED_FILE);
+        Ok(tokio::spawn(write(path, feed.render().into_string())))
     }
 
     pub fn generate_article_pages(&self) -> Result<JoinHandle<Result<()>>> {

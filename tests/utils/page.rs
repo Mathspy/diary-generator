@@ -4,9 +4,18 @@ use notion_generator::response::{
     properties::{DateProperty, RichTextProperty, TitleProperty},
     NotionDate, Page, PageParent, RichText, RichTextType, Time,
 };
-use time::macros::date;
+use time::{
+    macros::{date, format_description},
+    Date,
+};
 
-pub fn new(id: &str, title: &str, description: &str, date: Option<Time>) -> Page<Properties> {
+pub fn new(
+    id: &str,
+    title: &str,
+    description: &str,
+    date: Option<Time>,
+    publish: Option<Date>,
+) -> Page<Properties> {
     Page {
         object: "page".to_string(),
         id: id.parse().unwrap(),
@@ -31,10 +40,17 @@ pub fn new(id: &str, title: &str, description: &str, date: Option<Time>) -> Page
             published: DateProperty {
                 id: "Fpr%3E".to_string(),
                 date: Some(NotionDate {
-                    start: Time {
-                        original: "2021-12-24".to_string(),
-                        parsed: Either::Left(date!(2021 - 12 - 24)),
-                    },
+                    start: publish
+                        .map(|publish| Time {
+                            original: publish
+                                .format(format_description!("year-month-day"))
+                                .unwrap(),
+                            parsed: Either::Left(publish),
+                        })
+                        .unwrap_or(Time {
+                            original: "2021-12-24".to_string(),
+                            parsed: Either::Left(date!(2021 - 12 - 24)),
+                        }),
                     end: None,
                     time_zone: None,
                 }),
@@ -69,5 +85,46 @@ pub fn new(id: &str, title: &str, description: &str, date: Option<Time>) -> Page
         },
         url: format!("https://www.notion.so/{}", id),
         children: vec![],
+    }
+}
+
+pub fn new_article(
+    id: &str,
+    title: &str,
+    description: &str,
+    url: &str,
+    publish: Option<Date>,
+) -> Page<Properties> {
+    let base_page = new(id, title, description, None, publish);
+
+    Page {
+        properties: Properties {
+            name: TitleProperty {
+                id: "title".to_string(),
+                title: vec![RichText {
+                    ty: RichTextType::Text {
+                        content: title.to_string(),
+                        link: None,
+                    },
+                    annotations: Default::default(),
+                    plain_text: title.to_string(),
+                    href: None,
+                }],
+            },
+            url: RichTextProperty {
+                id: "NB%3BU".to_string(),
+                rich_text: vec![RichText {
+                    plain_text: url.to_string(),
+                    href: None,
+                    annotations: Default::default(),
+                    ty: RichTextType::Text {
+                        content: url.to_string(),
+                        link: None,
+                    },
+                }],
+            },
+            ..base_page.properties
+        },
+        ..base_page
     }
 }

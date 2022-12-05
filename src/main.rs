@@ -33,21 +33,23 @@ async fn main() -> Result<()> {
         generator.generate_article_pages()?,
         generator.generate_index_page()?,
         generator.generate_articles_page()?,
+        generator.generate_atom_feed()?,
         generator.generate_independent_pages(),
         spawn_copy_all(Path::new("public"), Path::new(EXPORT_DIR))
     )?;
 
     match results {
-        (Err(error), _, _, _, _, _, _, _, _) => return Err(error),
-        (_, Err(error), _, _, _, _, _, _, _) => return Err(error),
-        (_, _, Err(error), _, _, _, _, _, _) => return Err(error),
-        (_, _, _, Err(error), _, _, _, _, _) => return Err(error),
-        (_, _, _, _, Err(error), _, _, _, _) => return Err(error),
-        (_, _, _, _, _, Err(error), _, _, _) => return Err(error),
-        (_, _, _, _, _, _, Err(error), _, _) => return Err(error),
-        (_, _, _, _, _, _, _, Err(error), _) => return Err(error),
-        (_, _, _, _, _, _, _, _, Err(error)) => return Err(error),
-        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
+        (Err(error), _, _, _, _, _, _, _, _, _) => return Err(error),
+        (_, Err(error), _, _, _, _, _, _, _, _) => return Err(error),
+        (_, _, Err(error), _, _, _, _, _, _, _) => return Err(error),
+        (_, _, _, Err(error), _, _, _, _, _, _) => return Err(error),
+        (_, _, _, _, Err(error), _, _, _, _, _) => return Err(error),
+        (_, _, _, _, _, Err(error), _, _, _, _) => return Err(error),
+        (_, _, _, _, _, _, Err(error), _, _, _) => return Err(error),
+        (_, _, _, _, _, _, _, Err(error), _, _) => return Err(error),
+        (_, _, _, _, _, _, _, _, Err(error), _) => return Err(error),
+        (_, _, _, _, _, _, _, _, _, Err(error)) => return Err(error),
+        (Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(()), Ok(())) => {}
     };
 
     generator.download_all(reqwest_client.clone()).await?;
