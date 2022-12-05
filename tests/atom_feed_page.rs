@@ -91,8 +91,8 @@ async fn plentiful_configurations() {
       <uri>https://mathspy.me/</uri>
    </author>
    <generator uri="https://github.com/Mathspy/diary-generator" version="0.3.0">diary-generator</generator>
-   <link rel="self" href="https://gamediary.dev/" />
-   <link rel="alternate" href="https://gamediary.dev/feed.xml" />
+   <link rel="self" href="https://gamediary.dev/feed.xml" />
+   <link rel="alternate" href="https://gamediary.dev/" />
    <logo>/media/cover.png</logo>
    <entry>
       <id>https://gamediary.dev/interesting_article</id>
@@ -244,8 +244,8 @@ There’s no turning back now",
    <title>Diary</title>
    <updated>2021-12-09T00:00:00Z</updated>
    <generator uri="https://github.com/Mathspy/diary-generator" version="0.3.0">diary-generator</generator>
-   <link rel="self" href="https://example.com/" />
-   <link rel="alternate" href="https://example.com/feed.xml" />
+   <link rel="self" href="https://example.com/feed.xml" />
+   <link rel="alternate" href="https://example.com/" />
    <entry>
       <id>/2021/11/07</id>
       <title type="html">Day 0: Nannou, helping L, and lots of noise</title>

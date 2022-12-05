@@ -79,11 +79,11 @@ impl<'a> Render for Feed<'a> {
                 (self.generator)
 
                 (Link {
-                    href: self.url.as_str(),
+                    href: self.feed_url.as_str(),
                     ty: LinkType::Self_
                 })
                 (Link {
-                    href: self.feed_url.as_str(),
+                    href: self.url.as_str(),
                     ty: LinkType::Alternate
                 })
 
