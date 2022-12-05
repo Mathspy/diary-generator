@@ -24,6 +24,91 @@ fn xml_string_to_events(xml: &str) -> Vec<XmlEvent> {
 }
 
 #[tokio::test]
+async fn plentiful_configurations() {
+    let cwd = TestDir::new(function!());
+
+    fs::write(
+        cwd.path().join("config.json"),
+        r#"
+            {
+              "name": "Game Dev Diary",
+              "description": "A really cool diary",
+              "author": {
+                "name": "Mathspy",
+                "url": "https://mathspy.me"
+              },
+              "cover": "/media/cover.png",
+              "locale": "en_US",
+              "url": "https://gamediary.dev"
+            }
+        "#,
+    )
+    .unwrap();
+
+    let generator = Generator::new(
+        &cwd,
+        vec![new_article(
+            "78abd05b1dac3fb543001f4be5a25e49",
+            "Some article about something",
+            "some really interesting descritpion",
+            "interesting_article",
+            Some(date!(2021 - 12 - 08)),
+        )],
+    )
+    .await
+    .unwrap();
+    generator
+        .generate_atom_feed()
+        .unwrap()
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        DirEntry::breakdown(&cwd),
+        DirEntry::dir(
+            cwd.path().file_name().unwrap(),
+            [
+                DirEntry::file("config.json"),
+                DirEntry::dir("output", [DirEntry::file("feed.xml")])
+            ]
+        ),
+    );
+
+    assert_eq!(
+        xml_string_to_events(
+            &fs::read_to_string(cwd.path().join("output").join("feed.xml")).unwrap()
+        ),
+        xml_string_to_events(
+            r##"
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en_US">
+   <id>https://gamediary.dev/</id>
+   <title>Game Dev Diary</title>
+   <updated>2021-12-08T00:00:00Z</updated>
+   <author>
+      <name>Mathspy</name>
+      <uri>https://mathspy.me/</uri>
+   </author>
+   <generator uri="https://github.com/Mathspy/diary-generator" version="0.2.1">diary-generator</generator>
+   <link rel="self" href="https://gamediary.dev/" />
+   <link rel="alternate" href="https://gamediary.dev/feed.xml" />
+   <logo>/media/cover.png</logo>
+   <entry>
+      <id>interesting_article</id>
+      <title type="html">Some article about something</title>
+      <updated>2021-12-06T09:25:00Z</updated>
+      <published>2021-12-08T00:00:00Z</published>
+      <summary>some really interesting descritpion</summary>
+      <content type="html" />
+   </entry>
+</feed>
+"##
+        ),
+    );
+}
+
+#[tokio::test]
 async fn can_create_feed_from_articles_and_entries() {
     let cwd = TestDir::new(function!());
 
