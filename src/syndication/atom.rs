@@ -79,11 +79,11 @@ impl<'a> Render for Feed<'a> {
                 (self.generator)
 
                 (Link {
-                    href: self.url.as_str(),
+                    href: self.feed_url.as_str(),
                     ty: LinkType::Self_
                 })
                 (Link {
-                    href: self.feed_url.as_str(),
+                    href: self.url.as_str(),
                     ty: LinkType::Alternate
                 })
 
@@ -140,7 +140,7 @@ impl Render for Entry {
                 updated { (self.updated.format(&Rfc3339).unwrap()) }
                 published { (self.published.format(&Rfc3339).unwrap()) }
                 summary { (self.summary) }
-                content type="html" { (self.content) }
+                content type="html" { (self.content.0) }
             }
         }
     }

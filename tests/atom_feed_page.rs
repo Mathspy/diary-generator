@@ -82,7 +82,7 @@ async fn plentiful_configurations() {
         xml_string_to_events(
             r##"
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en_US">
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
    <id>https://gamediary.dev/</id>
    <title>Game Dev Diary</title>
    <updated>2021-12-08T00:00:00Z</updated>
@@ -91,11 +91,11 @@ async fn plentiful_configurations() {
       <uri>https://mathspy.me/</uri>
    </author>
    <generator uri="https://github.com/Mathspy/diary-generator" version="0.3.0">diary-generator</generator>
-   <link rel="self" href="https://gamediary.dev/" />
-   <link rel="alternate" href="https://gamediary.dev/feed.xml" />
+   <link rel="self" href="https://gamediary.dev/feed.xml" />
+   <link rel="alternate" href="https://gamediary.dev/" />
    <logo>/media/cover.png</logo>
    <entry>
-      <id>interesting_article</id>
+      <id>https://gamediary.dev/interesting_article</id>
       <title type="html">Some article about something</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-08T00:00:00Z</published>
@@ -239,13 +239,13 @@ There’s no turning back now",
         xml_string_to_events(
             r##"
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en_US">
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
    <id>https://example.com/</id>
    <title>Diary</title>
    <updated>2021-12-09T00:00:00Z</updated>
    <generator uri="https://github.com/Mathspy/diary-generator" version="0.3.0">diary-generator</generator>
-   <link rel="self" href="https://example.com/" />
-   <link rel="alternate" href="https://example.com/feed.xml" />
+   <link rel="self" href="https://example.com/feed.xml" />
+   <link rel="alternate" href="https://example.com/" />
    <entry>
       <id>/2021/11/07</id>
       <title type="html">Day 0: Nannou, helping L, and lots of noise</title>
@@ -260,15 +260,10 @@ There’s no turning back now",
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-07T00:00:00Z</published>
       <summary>Alice starts making games by watching trains with the loveliest coding conductor.</summary>
-      <content type="html">
-         <div id="4fb9dd792fc745b1b3a28efae49992ed">
-            <p>You can also create these rather interesting nested paragraphs</p>
-            <p id="817c0ca1721a4565ac54eedbbe471f0b" class="indent">Possibly more than once too!</p>
-         </div>
-      </content>
+      <content type="html">&lt;div id="4fb9dd792fc745b1b3a28efae49992ed"&gt;&lt;p&gt;You can also create these rather interesting nested paragraphs&lt;/p&gt;&lt;p id="817c0ca1721a4565ac54eedbbe471f0b" class="indent"&gt;Possibly more than once too!&lt;/p&gt;&lt;/div&gt;</content>
    </entry>
    <entry>
-      <id>interesting_article</id>
+      <id>https://example.com/interesting_article</id>
       <title type="html">Some article about something</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-08T00:00:00Z</published>

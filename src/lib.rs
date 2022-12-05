@@ -857,7 +857,7 @@ impl Generator {
                 let blocks = renderer.render_blocks(&page.children, None, 0);
 
                 let url = match id {
-                    UrlOrDate::Url(url) => url,
+                    UrlOrDate::Url(path) => url.join(&path)?.into(),
                     UrlOrDate::Date(date) => format_day(date, true),
                 };
 
@@ -889,7 +889,7 @@ impl Generator {
             },
             icon: self.config.icon.as_deref(),
             cover: self.config.cover.as_deref(),
-            lang: &self.config.locale.locale,
+            lang: &self.config.locale.lang,
             entries,
         };
 
