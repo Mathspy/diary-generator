@@ -260,12 +260,7 @@ There’s no turning back now",
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-07T00:00:00Z</published>
       <summary>Alice starts making games by watching trains with the loveliest coding conductor.</summary>
-      <content type="html">
-         <div id="4fb9dd792fc745b1b3a28efae49992ed">
-            <p>You can also create these rather interesting nested paragraphs</p>
-            <p id="817c0ca1721a4565ac54eedbbe471f0b" class="indent">Possibly more than once too!</p>
-         </div>
-      </content>
+      <content type="html">&lt;div id="4fb9dd792fc745b1b3a28efae49992ed"&gt;&lt;p&gt;You can also create these rather interesting nested paragraphs&lt;/p&gt;&lt;p id="817c0ca1721a4565ac54eedbbe471f0b" class="indent"&gt;Possibly more than once too!&lt;/p&gt;&lt;/div&gt;</content>
    </entry>
    <entry>
       <id>https://example.com/interesting_article</id>

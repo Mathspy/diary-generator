@@ -140,7 +140,7 @@ impl Render for Entry {
                 updated { (self.updated.format(&Rfc3339).unwrap()) }
                 published { (self.published.format(&Rfc3339).unwrap()) }
                 summary { (self.summary) }
-                content type="html" { (self.content) }
+                content type="html" { (self.content.0) }
             }
         }
     }
