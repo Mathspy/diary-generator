@@ -164,7 +164,7 @@ async fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(
 }
 
 async fn read_partial_file<P: AsRef<Path>>(file: P) -> Result<String> {
-    tokio::fs::read_to_string(Path::new("partials").join(file.as_ref()))
+    tokio::fs::read_to_string(file.as_ref())
         .await
         .or_else(|error| match error.kind() {
             io::ErrorKind::NotFound => Ok(String::new()),
@@ -260,9 +260,9 @@ impl Generator {
         };
 
         let (head, header, footer, config_file) = tokio::try_join!(
-            read_partial_file(dir.join("head.html")),
-            read_partial_file(dir.join("header.html")),
-            read_partial_file(dir.join("footer.html")),
+            read_partial_file(dir.join("partials/head.html")),
+            read_partial_file(dir.join("partials/header.html")),
+            read_partial_file(dir.join("partials/footer.html")),
             read_config_file,
         )?;
         let head = PreEscaped(head);
