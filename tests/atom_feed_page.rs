@@ -247,7 +247,7 @@ There’s no turning back now",
    <link rel="self" href="https://example.com/feed.xml" />
    <link rel="alternate" href="https://example.com/" />
    <entry>
-      <id>/2021/11/07</id>
+      <id>https://example.com/2021/11/07</id>
       <title type="html">Day 0: Nannou, helping L, and lots of noise</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-05T00:00:00Z</published>
@@ -255,7 +255,7 @@ There’s no turning back now",
       <content type="html" />
    </entry>
    <entry>
-      <id>/2021/11/08</id>
+      <id>https://example.com/2021/11/08</id>
       <title type="html">Day 1: Down the rabbit hole we go</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-07T00:00:00Z</published>
@@ -271,7 +271,7 @@ There’s no turning back now",
       <content type="html" />
    </entry>
    <entry>
-      <id>/2021/11/09</id>
+      <id>https://example.com/2021/11/09</id>
       <title type="html">Day 2: Enter Bevy &amp; Shaders are hard</title>
       <updated>2021-12-06T09:25:00Z</updated>
       <published>2021-12-09T00:00:00Z</published>
