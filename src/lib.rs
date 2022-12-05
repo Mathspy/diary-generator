@@ -179,6 +179,7 @@ pub struct Generator {
 
 impl Generator {
     pub async fn new<P: AsRef<Path>>(dir: P, pages: Vec<Page<Properties>>) -> Result<Generator> {
+        let dir = dir.as_ref();
         let length = pages.len();
 
         let today = time::OffsetDateTime::now_utc().date();
@@ -240,7 +241,7 @@ impl Generator {
             )?;
 
         let read_config_file = async {
-            tokio::fs::File::open("config.json")
+            tokio::fs::File::open(dir.join("config.json"))
                 .await
                 .map(Some)
                 .or_else(|error| match error.kind() {
@@ -251,9 +252,9 @@ impl Generator {
         };
 
         let (head, header, footer, config_file) = tokio::try_join!(
-            read_partial_file("head.html"),
-            read_partial_file("header.html"),
-            read_partial_file("footer.html"),
+            read_partial_file(dir.join("head.html")),
+            read_partial_file(dir.join("header.html")),
+            read_partial_file(dir.join("footer.html")),
             read_config_file,
         )?;
         let head = PreEscaped(head);
@@ -276,7 +277,7 @@ impl Generator {
             header,
             footer,
             config,
-            directory: dir.as_ref().to_owned(),
+            directory: dir.to_owned(),
         })
     }
 
