@@ -699,7 +699,7 @@ dependencies = [
 [[package]]
 name = "notion-generator"
 version = "0.1.3"
-source = "git+https://github.com/Mathspy/notion-generator?rev=1701a87#1701a87398fe5b80e0d7c93ee7204ea0b993a1cc"
+source = "git+https://github.com/Mathspy/notion-generator?rev=1a56e1b#1a56e1b5d8d11a1070602c0f4c73c0f1aa2bcb5a"
 dependencies = [
  "anyhow",
  "async-recursion",
