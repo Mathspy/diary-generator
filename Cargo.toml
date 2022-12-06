@@ -16,7 +16,7 @@ either = { version = "1" }
 futures-util = { version = "0.3" }
 itertools = { version = "0.10" }
 maud = { version = "0.23" }
-notion-generator = { git = "https://github.com/Mathspy/notion-generator", rev = "1a56e1b" }
+notion-generator = { git = "https://github.com/Mathspy/notion-generator", rev = "618fafd" }
 reqwest = { version = "0.11.12", default-features = false, features = ["json", "rustls-tls-native-roots"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
