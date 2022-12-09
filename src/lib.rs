@@ -16,7 +16,7 @@ use notion_generator::{
     render::{Heading, Title},
     response::{
         properties::{DateProperty, RichTextProperty, TitleProperty},
-        NotionDate, NotionId, Page, PlainText, RichText,
+        NotionId, Page, PlainText, RichText,
     },
     HtmlRenderer,
 };
@@ -68,13 +68,6 @@ fn render_article_time(date: Date) -> Result<Markup> {
             }
         }
     })
-}
-
-fn get_date(date: &NotionDate) -> Date {
-    match date.start.parsed {
-        Either::Left(date) => date,
-        Either::Right(datetime) => datetime.date(),
-    }
 }
 
 fn render_paging_links(
@@ -208,19 +201,19 @@ impl Generator {
                     .date
                     .date
                     .as_ref()
-                    .map(|date| date.start.parsed);
+                    .map(|date| date.start.get_date());
                 let url = page.properties.url.rich_text.plain_text();
                 let url = Some(url).filter(|url| url.is_empty().not());
 
                 let (path, identifier) = match (date, url) {
-                    (Some(Either::Right(datetime)), _) => bail!(
+                    (Some(Err(datetime)), _) => bail!(
                         "Diary dates must not contain time but page {} has datetime {}",
                         page.id,
                         datetime
                     ),
-                    (Some(Either::Left(date)), Some(url)) => bail!("Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}", page.id, date, url),
+                    (Some(Ok(date)), Some(url)) => bail!("Diary currently doesn't support rendering a page with both a date and a URL but page {} has date {} and URL {}", page.id, date, url),
                     (None, None) => bail!("Diary pages must have either a date or a URL"),
-                    (Some(Either::Left(date)), None) => {
+                    (Some(Ok(date)), None) => {
                         (format_day(date, true), Either::Left(date))
                     }
                     (None, Some(url)) => (format!("/{}", url), Either::Right(url)),
@@ -322,8 +315,14 @@ impl Generator {
             .date
             .date
             .as_ref()
-            .map(get_date)
-            .or_else(|| page.properties.published.date.as_ref().map(get_date));
+            .map(|date| date.start.date())
+            .or_else(|| {
+                page.properties
+                    .published
+                    .date
+                    .as_ref()
+                    .map(|date| date.start.date())
+            });
 
         let cover = self.download_cover(page)?;
 
@@ -825,10 +824,7 @@ impl Generator {
             )
             .filter_map(|(id, page)| {
                 page.properties.published.date.as_ref().map(|date| {
-                    let datetime = match date.start.parsed {
-                        Either::Left(date) => date.with_time(time::Time::MIDNIGHT).assume_utc(),
-                        Either::Right(datetime) => datetime,
-                    };
+                    let datetime = date.start.datetime();
                     (datetime, id, page)
                 })
             })
@@ -996,7 +992,12 @@ impl Generator {
         };
 
         let articles = self.article_pages.iter().filter_map(|(url, page)| {
-            let published_date = page.properties.published.date.as_ref().map(get_date);
+            let published_date = page
+                .properties
+                .published
+                .date
+                .as_ref()
+                .map(|date| date.start.date());
 
             let published_date = match published_date {
                 Some(published_date) => published_date,

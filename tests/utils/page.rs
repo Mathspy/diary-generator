@@ -1,13 +1,9 @@
 use diary_generator::Properties;
-use either::Either;
 use notion_generator::response::{
     properties::{DateProperty, RichTextProperty, TitleProperty},
     NotionDate, Page, PageParent, RichText, RichTextType, Time,
 };
-use time::{
-    macros::{date, format_description},
-    Date,
-};
+use time::{macros::format_description, Date};
 
 pub fn new(
     id: &str,
@@ -41,16 +37,14 @@ pub fn new(
                 id: "Fpr%3E".to_string(),
                 date: Some(NotionDate {
                     start: publish
-                        .map(|publish| Time {
-                            original: publish
-                                .format(format_description!("year-month-day"))
-                                .unwrap(),
-                            parsed: Either::Left(publish),
+                        .map(|publish| {
+                            publish
+                                .format(format_description!("[year]-[month]-[day]"))
+                                .unwrap()
+                                .parse()
+                                .unwrap()
                         })
-                        .unwrap_or(Time {
-                            original: "2021-12-24".to_string(),
-                            parsed: Either::Left(date!(2021 - 12 - 24)),
-                        }),
+                        .unwrap_or("2021-12-24".parse().unwrap()),
                     end: None,
                     time_zone: None,
                 }),
