@@ -1,8 +1,7 @@
 mod utils;
 
 use diary_generator::Generator;
-use either::Either;
-use notion_generator::response::{Block, BlockType, Page, RichText, RichTextType, Time};
+use notion_generator::response::{Block, BlockType, Page, RichText, RichTextType};
 use pretty_assertions::assert_eq;
 use std::{fs, io::Cursor};
 use time::macros::date;
@@ -126,10 +125,7 @@ async fn can_create_feed_from_articles_and_entries() {
                 "Day 0: Nannou, helping L, and lots of noise",
                 "Every journey starts with 1 O'clock: assistance. \
 I just didn't know mine will also start with noise.",
-                Some(Time {
-                    original: "2021-11-07".to_string(),
-                    parsed: Either::Left(date!(2021 - 11 - 07)),
-                }),
+                Some("2021-11-07".parse().unwrap()),
                 Some(date!(2021-12-05))
             ),
             Page {
@@ -184,11 +180,8 @@ I just didn't know mine will also start with noise.",
                     "ac3fb543001f4be5a25e4978abd05b1d",
                     "Day 1: Down the rabbit hole we go",
                     "Alice starts making games by watching trains with the loveliest coding conductor.",
-                    Some(Time {
-                        original: "2021-11-08".to_string(),
-                        parsed: Either::Left(date!(2021 - 11 - 08)),
-                    }),
-                Some(date!(2021-12-07))
+                    Some("2021-11-08".parse().unwrap()),
+                    Some(date!(2021-12-07))
                 )
             },
             new_entry(
@@ -197,10 +190,7 @@ I just didn't know mine will also start with noise.",
                 "3 O’clock: departure. \
 We are not entering the world of Bevy where we will actually make things happen. \
 There’s no turning back now",
-                Some(Time {
-                    original: "2021-11-09".to_string(),
-                    parsed: Either::Left(date!(2021 - 11 - 09)),
-                }),
+                Some("2021-11-09".parse().unwrap()),
                 Some(date!(2021-12-09))
             ),
             new_article(
