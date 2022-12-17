@@ -676,10 +676,9 @@ dependencies = [
 [[package]]
 name = "notion-generator"
 version = "0.1.3"
-source = "git+https://github.com/Mathspy/notion-generator?rev=39998c3#39998c351f8b1a93db6aa359c32f066089c37ba6"
+source = "git+https://github.com/Mathspy/notion-generator?rev=ee163cf#ee163cffe8f404f5461c5411f2b607ce65277fc9"
 dependencies = [
  "anyhow",
- "async-recursion",
  "emoji",
  "flurry",
  "futures-util",
