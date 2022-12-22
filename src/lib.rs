@@ -803,8 +803,8 @@ impl Generator {
     pub fn generate_atom_feed(&self) -> Result<JoinHandle<Result<()>>> {
         const FEED_FILE: &str = "feed.xml";
 
-        let url = if let Some(url) = &self.config.get_atom_id() {
-            url.clone()
+        let url = if let Some(url) = self.config.get_atom_id() {
+            url
         } else {
             warn!("Cannot generate Atom feed without a unique URL to identify it");
             return Ok(tokio::spawn(async { Ok(()) }));
@@ -887,7 +887,7 @@ impl Generator {
 
         let feed = atom::Feed {
             title: &self.config.name,
-            url: url.clone(),
+            url,
             feed_url: url.join(FEED_FILE)?,
             last_changed: last_publication,
             authors,
