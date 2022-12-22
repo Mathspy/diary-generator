@@ -791,7 +791,7 @@ impl Generator {
     pub fn generate_atom_feed(&self) -> Result<JoinHandle<Result<()>>> {
         const FEED_FILE: &str = "feed.xml";
 
-        let url = if let Some(url) = &self.config.url {
+        let url = if let Some(url) = &self.config.get_atom_id() {
             url.clone()
         } else {
             warn!("Cannot generate Atom feed without a unique URL to identify it");
