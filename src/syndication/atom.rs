@@ -5,7 +5,7 @@ pub struct Feed<'a> {
     /// The title of the feed
     pub title: &'a str,
     /// The URL from which the diary itself will be served
-    pub url: reqwest::Url,
+    pub url: &'a reqwest::Url,
     /// The URL from which the feed will be served from
     pub feed_url: reqwest::Url,
     /// The last time the feed was changed

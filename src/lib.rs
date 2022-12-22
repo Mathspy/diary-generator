@@ -396,6 +396,9 @@ impl Generator {
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
                             }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                            }
 
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for years? Should we just say
@@ -494,6 +497,9 @@ impl Generator {
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
                             }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                            }
 
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for months? Should we just say
@@ -591,6 +597,9 @@ impl Generator {
                             }
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
+                            }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
                             }
 
                             meta property="og:title" content=(title);
@@ -745,6 +754,9 @@ impl Generator {
                     @if let Some(author) = &self.config.author {
                         meta name="author" content=(author.name);
                     }
+                    @if self.config.get_atom_id().is_some() {
+                        link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                    }
 
                     meta property="og:title" content=(self.config.name);
                     meta property="og:description" content=(self.config.description);
@@ -791,8 +803,8 @@ impl Generator {
     pub fn generate_atom_feed(&self) -> Result<JoinHandle<Result<()>>> {
         const FEED_FILE: &str = "feed.xml";
 
-        let url = if let Some(url) = &self.config.url {
-            url.clone()
+        let url = if let Some(url) = self.config.get_atom_id() {
+            url
         } else {
             warn!("Cannot generate Atom feed without a unique URL to identify it");
             return Ok(tokio::spawn(async { Ok(()) }));
@@ -875,7 +887,7 @@ impl Generator {
 
         let feed = atom::Feed {
             title: &self.config.name,
-            url: url.clone(),
+            url,
             feed_url: url.join(FEED_FILE)?,
             last_changed: last_publication,
             authors,
@@ -935,6 +947,9 @@ impl Generator {
                             }
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
+                            }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
                             }
 
                             meta property="og:title" content=(title);
@@ -1033,6 +1048,9 @@ impl Generator {
                     title { (title) }
                     @if let Some(author) = &self.config.author {
                         meta name="author" content=(author.name);
+                    }
+                    @if self.config.get_atom_id().is_some() {
+                        link rel="alternate" type="application/atom+xml" href="/feed.xml";
                     }
 
                     meta property="og:title" content=(title);
@@ -1147,6 +1165,9 @@ impl Generator {
                                 title { (title) }
                                 @if let Some(author) = &config_ref.author {
                                     meta name="author" content=(author.name);
+                                }
+                                @if config_ref.get_atom_id().is_some() {
+                                    link rel="alternate" type="application/atom+xml" href="/feed.xml";
                                 }
 
                                 meta property="og:title" content=(title);

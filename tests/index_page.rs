@@ -167,3 +167,64 @@ There’s no turning back now",
         .into_string(),
     );
 }
+
+#[tokio::test]
+async fn with_config_url() {
+    let cwd = TestDir::new(function!());
+
+    fs::write(
+        cwd.path().join("config.json"),
+        r#"
+            {
+              "url": "https://gamediary.dev"
+            }
+        "#,
+    )
+    .unwrap();
+
+    let generator = Generator::new(&cwd, Vec::new()).await.unwrap();
+    generator
+        .generate_index_page()
+        .unwrap()
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        DirEntry::breakdown(&cwd),
+        DirEntry::dir(
+            cwd.path().file_name().unwrap(),
+            [
+                DirEntry::file("config.json"),
+                DirEntry::dir("output", [DirEntry::file("index.html")])
+            ]
+        ),
+    );
+
+    assert_eq!(
+        fs::read_to_string(cwd.path().join("output").join("index.html")).unwrap(),
+        html! {
+            (DOCTYPE)
+            html lang="en" {
+                head {
+                    meta charset="utf-8";
+                    meta name="viewport" content="width=device-width, initial-scale=1";
+                    meta name="description" content="A neat diary";
+                    link rel="stylesheet" href="/katex/katex.min.css";
+                    title { "Diary" }
+                    link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                    meta property="og:title" content="Diary";
+                    meta property="og:description" content="A neat diary";
+                    meta property="og:locale" content="en_US";
+                    meta property="og:url" content="https://gamediary.dev/";
+                }
+                body {
+                    header {}
+                    main {}
+                    footer {}
+                }
+            }
+        }
+        .into_string(),
+    );
+}

@@ -89,3 +89,9 @@ impl Default for Config {
         }
     }
 }
+
+impl Config {
+    pub fn get_atom_id(&self) -> Option<&reqwest::Url> {
+        self.url.as_ref()
+    }
+}
