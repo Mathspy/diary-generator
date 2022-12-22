@@ -396,6 +396,9 @@ impl Generator {
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
                             }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                            }
 
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for years? Should we just say
@@ -494,6 +497,9 @@ impl Generator {
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
                             }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                            }
 
                             meta property="og:title" content=(title);
                             // TODO: What's a good description for months? Should we just say
@@ -591,6 +597,9 @@ impl Generator {
                             }
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
+                            }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
                             }
 
                             meta property="og:title" content=(title);
@@ -744,6 +753,9 @@ impl Generator {
                     title { (self.config.name) }
                     @if let Some(author) = &self.config.author {
                         meta name="author" content=(author.name);
+                    }
+                    @if self.config.get_atom_id().is_some() {
+                        link rel="alternate" type="application/atom+xml" href="/feed.xml";
                     }
 
                     meta property="og:title" content=(self.config.name);
@@ -936,6 +948,9 @@ impl Generator {
                             @if let Some(author) = &self.config.author {
                                 meta name="author" content=(author.name);
                             }
+                            @if self.config.get_atom_id().is_some() {
+                                link rel="alternate" type="application/atom+xml" href="/feed.xml";
+                            }
 
                             meta property="og:title" content=(title);
                             @if !description.is_empty() {
@@ -1033,6 +1048,9 @@ impl Generator {
                     title { (title) }
                     @if let Some(author) = &self.config.author {
                         meta name="author" content=(author.name);
+                    }
+                    @if self.config.get_atom_id().is_some() {
+                        link rel="alternate" type="application/atom+xml" href="/feed.xml";
                     }
 
                     meta property="og:title" content=(title);
@@ -1147,6 +1165,9 @@ impl Generator {
                                 title { (title) }
                                 @if let Some(author) = &config_ref.author {
                                     meta name="author" content=(author.name);
+                                }
+                                @if config_ref.get_atom_id().is_some() {
+                                    link rel="alternate" type="application/atom+xml" href="/feed.xml";
                                 }
 
                                 meta property="og:title" content=(title);
